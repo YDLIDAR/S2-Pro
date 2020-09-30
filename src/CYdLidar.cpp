@@ -1,4 +1,4 @@
-//
+﻿//
 // The MIT License (MIT)
 //
 // Copyright (c) 2020 EAIBOT. All rights reserved.
@@ -24,7 +24,7 @@
 #include "CYdLidar.h"
 #include "common.h"
 #include <map>
-#include<numeric>
+#include <numeric>
 #include "angles.h"
 
 
@@ -37,10 +37,11 @@ using namespace impl;
 						Constructor
 -------------------------------------------------------------*/
 CYdLidar::CYdLidar(): lidarPtr(nullptr) {
-  m_SerialPort        = "";
+  m_SerialPort        = "/dev/ydlidar";
   m_SerialBaudrate    = 115200;
   m_FixedResolution   = false;
   m_Reversion         = false;
+  m_Inverted          = true;
   m_AutoReconnect     = false;
   m_MaxAngle          = 180.f;
   m_MinAngle          = -180.f;
@@ -60,6 +61,7 @@ CYdLidar::CYdLidar(): lidarPtr(nullptr) {
   frequency_offset    = 0.0;
   zero_offset_angle   = 0.0;
   m_IgnoreArray.clear();
+  memset(&m_LidarVersion, 0, sizeof(LidarVersion));
 }
 
 /*-------------------------------------------------------------
@@ -67,6 +69,232 @@ CYdLidar::CYdLidar(): lidarPtr(nullptr) {
 -------------------------------------------------------------*/
 CYdLidar::~CYdLidar() {
   disconnecting();
+}
+
+bool CYdLidar::setlidaropt(int optname, const void *optval, int optlen) {
+  if (optval == NULL) {
+#if defined(_WIN32)
+    SetLastError(EINVAL);
+#else
+    errno = EINVAL;
+#endif
+    return false;
+  }
+
+  if (optname >= LidarPropFixedResolution) {
+    if (optlen != sizeof(bool)) {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+
+  } else if (optname >= LidarPropMaxRange) {
+    if (optlen != sizeof(float)) {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+  } else if (optname >= LidarPropSerialBaudrate) {
+    if (optlen != sizeof(int)) {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+  } else {
+
+  }
+
+
+  bool ret = true;
+
+  switch (optname) {
+    case LidarPropSerialPort:
+      m_SerialPort = (const char *)optval;
+      break;
+
+    case LidarPropIgnoreArray:
+      m_IgnoreString = (const char *)optval;
+      m_IgnoreArray = ydlidar::split(m_IgnoreString, ',');
+
+      if (m_IgnoreArray.size() % 2 != 0) {
+        m_IgnoreArray.clear();
+        ret = false;
+      }
+
+      break;
+
+    case LidarPropFixedResolution:
+      m_FixedResolution = *(bool *)(optval);
+      break;
+
+    case LidarPropReversion:
+      m_Reversion = *(bool *)(optval);
+      break;
+
+    case LidarPropInverted:
+      m_Inverted = *(bool *)(optval);
+      break;
+
+    case LidarPropAutoReconnect:
+      m_AutoReconnect = *(bool *)(optval);
+      break;
+
+    case LidarPropMaxRange:
+      m_MaxRange = *(float *)(optval);
+      break;
+
+    case LidarPropMinRange:
+      m_MinRange = *(float *)(optval);
+      break;
+
+    case LidarPropMaxAngle:
+      m_MaxAngle = *(float *)(optval);
+      break;
+
+    case LidarPropMinAngle:
+      m_MinAngle = *(float *)(optval);
+      break;
+
+    case LidarPropScanFrequency:
+      m_ScanFrequency = *(float *)(optval);
+      break;
+
+    case LidarPropSerialBaudrate:
+      m_SerialBaudrate = *(int *)(optval);
+      break;
+
+    case LidarPropAbnormalCheckCount:
+      m_AbnormalCheckCount = *(int *)(optval);
+      break;
+
+    default :
+      ret = false;
+      break;
+  }
+
+  return ret;
+}
+
+bool CYdLidar::getlidaropt(int optname, void *optval, int optlen) {
+  if (optval == NULL) {
+#if defined(_WIN32)
+    SetLastError(EINVAL);
+#else
+    errno = EINVAL;
+#endif
+    return false;
+  }
+
+  if (optname >= LidarPropFixedResolution) {
+    if (optlen != sizeof(bool)) {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+
+  } else if (optname >= LidarPropMaxRange) {
+    if (optlen != sizeof(float)) {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+  } else if (optname >= LidarPropSerialBaudrate) {
+    if (optlen != sizeof(int)) {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+  } else {
+
+  }
+
+  bool ret = true;
+
+  switch (optname) {
+    case LidarPropSerialPort:
+      memcpy(optval, m_SerialPort.c_str(), optlen);
+      break;
+
+    case LidarPropIgnoreArray:
+      memcpy(optval, m_IgnoreString.c_str(), optlen);
+      break;
+
+    case LidarPropFixedResolution:
+      memcpy(optval, &m_FixedResolution, optlen);
+      break;
+
+    case LidarPropReversion:
+      memcpy(optval, &m_Reversion, optlen);
+      break;
+
+    case LidarPropInverted:
+      memcpy(optval, &m_Inverted, optlen);
+      break;
+
+    case LidarPropAutoReconnect:
+      memcpy(optval, &m_AutoReconnect, optlen);
+      break;
+
+    case LidarPropMaxRange:
+      memcpy(optval, &m_MaxRange, optlen);
+      break;
+
+    case LidarPropMinRange:
+      memcpy(optval, &m_MinRange, optlen);
+      break;
+
+    case LidarPropMaxAngle:
+      memcpy(optval, &m_MaxAngle, optlen);
+      break;
+
+    case LidarPropMinAngle:
+      memcpy(optval, &m_MinAngle, optlen);
+      break;
+
+    case LidarPropScanFrequency:
+      memcpy(optval, &m_ScanFrequency, optlen);
+      break;
+
+    case LidarPropSerialBaudrate:
+      memcpy(optval, &m_SerialBaudrate, optlen);
+      break;
+
+    case LidarPropAbnormalCheckCount:
+      memcpy(optval, &m_AbnormalCheckCount, optlen);
+      break;
+
+    default :
+      ret = false;
+      break;
+  }
+
+  return ret;
+
+}
+
+/*-------------------------------------------------------------
+                        initialize
+-------------------------------------------------------------*/
+void CYdLidar::GetLidarVersion(LidarVersion &version) {
+  memcpy(&version, &m_LidarVersion, sizeof(LidarVersion));
 }
 
 void CYdLidar::disconnecting() {
@@ -152,8 +380,13 @@ bool  CYdLidar::doProcessSimple(LaserScan &scan_msg, bool &hardwareError) {
         point.angle += M_PI;
       }
 
-      point.angle = 2 * M_PI - point.angle;
+      //Is it counter clockwise
+      if (m_Inverted) {
+        point.angle = 2 * M_PI - point.angle;
+      }
+
       point.angle = angles::normalize_angle(point.angle);
+
 
       if (m_GlassNoise && point.intensity == GLASSNOISEINTENSITY) {
         point.range = 0.0;
@@ -364,6 +597,11 @@ bool CYdLidar::getDeviceInfo(uint32_t timeout) {
   }
 
   printf("\n");
+  m_LidarVersion.hardware = devinfo.hardware_version;
+  m_LidarVersion.soft_major = Major;
+  m_LidarVersion.soft_minor = Minjor / 10;
+  m_LidarVersion.soft_patch = Minjor % 10;
+  memcpy(&m_LidarVersion.sn[0], &devinfo.serialnum[0], 16);
   checkScanFrequency();
   //checkZeroOffsetAngle();
   printf("[YDLIDAR INFO] Current Sampling Rate : %dK\n", sample_rate);
@@ -518,7 +756,7 @@ bool  CYdLidar::checkCOMMs() {
          m_SerialPort.c_str(),
          m_SerialBaudrate);
   fflush(stdout);
-
+  printf("LiDAR successfully connected\n");
   isConnected = true;
   return true;
 }
