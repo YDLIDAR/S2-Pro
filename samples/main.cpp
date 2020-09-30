@@ -64,15 +64,53 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
+  float frequency = 6.0;
+
   CYdLidar laser;
-  laser.setSerialPort(port);
-  laser.setSerialBaudrate(baudrate);
-  laser.setScanFrequency(6.0);
-  laser.setFixedResolution(false);
-  laser.setReversion(false);
-  laser.setAutoReconnect(true);
-  laser.setGlassNoise(true);
-  laser.setSunNoise(true);
+  //////////////////////string property/////////////////
+  /// lidar port
+  laser.setlidaropt(LidarPropSerialPort, port.c_str(), port.size());
+  /// ignore array
+  std::string ignore_array;
+  ignore_array.clear();
+  laser.setlidaropt(LidarPropIgnoreArray, ignore_array.c_str(),
+                    ignore_array.size());
+
+  //////////////////////int property/////////////////
+  /// lidar baudrate
+  laser.setlidaropt(LidarPropSerialBaudrate, &baudrate, sizeof(int));
+
+  /// abnormal count
+  int optval = 4;
+  laser.setlidaropt(LidarPropAbnormalCheckCount, &optval, sizeof(int));
+
+  //////////////////////bool property/////////////////
+  /// fixed angle resolution
+  bool b_optvalue = false;
+  laser.setlidaropt(LidarPropFixedResolution, &b_optvalue, sizeof(bool));
+  /// rotate 180
+  laser.setlidaropt(LidarPropReversion, &b_optvalue, sizeof(bool));
+  /// Counterclockwise
+  laser.setlidaropt(LidarPropInverted, &b_optvalue, sizeof(bool));
+  b_optvalue = true;
+  laser.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
+
+
+  //////////////////////float property/////////////////
+  /// unit: °
+  float f_optvalue = 180.0f;
+  laser.setlidaropt(LidarPropMaxAngle, &f_optvalue, sizeof(float));
+  f_optvalue = -180.0f;
+  laser.setlidaropt(LidarPropMinAngle, &f_optvalue, sizeof(float));
+  /// unit: m
+  f_optvalue = 8.f;
+  laser.setlidaropt(LidarPropMaxRange, &f_optvalue, sizeof(float));
+  f_optvalue = 0.05f;
+  laser.setlidaropt(LidarPropMinRange, &f_optvalue, sizeof(float));
+  /// unit: Hz
+  laser.setlidaropt(LidarPropScanFrequency, &frequency, sizeof(float));
+
+
   bool ret = laser.initialize();
 
   if (ret) {
