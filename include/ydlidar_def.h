@@ -61,6 +61,36 @@ typedef enum  {
   UnknownError,
 } lidar_error_t;
 
+/** Lidar Properties,Lidar Can set and get parameter property index.\n
+ * float properties must be float type, not double type.
+*/
+typedef enum {
+  /* char* properties */
+  LidarPropSerialPort = 0,/**< Lidar serial port or network ipaddress */
+  LidarPropIgnoreArray,/**< Lidar ignore angle array */
+  /* int properties */
+  LidarPropSerialBaudrate = 10,/**< lidar serial baudrate or network port */
+  LidarPropLidarType,/**< lidar type code */
+  LidarPropDeviceType,/**< lidar connection type code */
+  LidarPropSampleRate,/**< lidar sample rate */
+  LidarPropAbnormalCheckCount,/**< abnormal maximum check times */
+  /* float properties */
+  LidarPropMaxRange = 20,/**< lidar maximum range */
+  LidarPropMinRange,/**< lidar minimum range */
+  LidarPropMaxAngle,/**< lidar maximum angle */
+  LidarPropMinAngle,/**< lidar minimum angle */
+  LidarPropScanFrequency,/**< lidar scanning frequency */
+  /* bool properties */
+  LidarPropFixedResolution = 30,/**< fixed angle resolution flag */
+  LidarPropReversion,/**< lidar reversion flag */
+  LidarPropInverted,/**< lidar inverted flag */
+  LidarPropAutoReconnect,/**< lidar hot plug flag */
+  LidarPropSingleChannel,/**< lidar single-channel flag */
+  LidarPropIntenstiy,/**< lidar intensity flag */
+  LidarPropSupportMotorDtrCtrl,/**< lidar support motor Dtr ctrl flag */
+  LidarPropSupportHeartBeat,/**< lidar support heartbeat flag */
+} LidarProperty;
+
 #pragma pack(1)
 /// LiDAR Intensity Nodes Package
 struct node_package_header_t {
@@ -200,6 +230,16 @@ struct ct_packet_t {
 static_assert(sizeof(ct_packet_t) == 105,
               "ct packet size mismatch.");
 
+
+/** The numeric version information struct.  */
+typedef struct {
+  uint8_t hardware;   /**< Hardware version*/
+  uint8_t soft_major;      /**< major number */
+  uint8_t soft_minor;      /**< minor number */
+  uint8_t soft_patch;      /**< patch number */
+  uint8_t sn[16];     /**< serial number*/
+} LidarVersion;
+
 #pragma pack()
 
 
@@ -273,3 +313,4 @@ struct LaserScan {
     return *this;
   }
 };
+
