@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <csignal>
 #include <sstream>
+#include <vector>
 
 
 #define UNUSED(x) (void)x
@@ -217,6 +218,25 @@ inline bool ok() {
 inline void shutdownNow() {
   trigger_interrupt_guard_condition(SIGINT);
 }
+
+/**
+ * @brief split string to vector by delim format
+ * @param s       string
+ * @param delim   split format
+ * @return split vector
+ */
+inline std::vector<float> split(const std::string &s, char delim) {
+  std::vector<float> elems;
+  std::stringstream ss(s);
+  std::string number;
+
+  while (std::getline(ss, number, delim)) {
+    elems.push_back(atof(number.c_str()));
+  }
+
+  return elems;
+}
+
 
 }
 
