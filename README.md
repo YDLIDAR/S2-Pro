@@ -1,58 +1,55 @@
 YDLIDAR S2-Pro SDK PACKAGE V1.0.0
 =====================================================================
 
-SDK [test](https://github.com/ydlidar/S2-Pro) application for YDLIDAR
+# Table of Contents
 
-Visit EAI Website for more details about [YDLIDAR](http://www.ydlidar.com/) .
+1. [Introduction](#introduction)
+    - [Prerequisites](#prerequisites)
 
-How to build YDLIDAR SDK samples
-=====================================================================
-   
-    $ git clone https://github.com/ydlidar/S2-Pro
-    
-    $ mkdir build
-    
-    $ cd build
-    
-    $ cmake ../S2-Pro
-    
-    $ make			###linux
-    
-    $ vs open Project.sln	###windows
-    
-How to run YDLIDAR SDK samples
-=====================================================================
-    $ cd samples
+2. [Installation](#installation)
+3. [Documents](#documents)
+4. [Support](#support)
+5. [Contact EAI](#contact-eai)
 
-linux:
+# Introduction
 
-    $ ./ydlidar_test
-    $Please enter the lidar serial port :/dev/ttyUSB0
-    $Please enter the lidar serial baud rate:115200
+YDLidar S2-Pro SDK is the software development kit designed for YDLIDAR S2-Pro products. It is developed based on C++ following YDLidar S2-Pro SDK Communication Protocol, and provides easy-to-use C++,style API. With YDLidar S2-Pro SDK, users can quickly connect to YDLidar S2-Pro products and receive Laser scan data.
 
-windows:
+YDLidar S2-Pro SDK consists of YDLidar S2-Pro SDK communication protocol, YDLidar S2-Pro SDK core, YDLidar S2-Pro SDK API, Linux/windows samples.
 
-    $ ydlidar_test.exe
-    $Please enter the lidar serial port:COM3
-    $Please enter the lidar serial baud rate:115200
+### Prerequisites
+* Linux
+* Windows 7/10, Visual Studio 2015/2017
+* C++11 compiler
 
 
-You should see YDLIDAR's scan result in the console:
+## Installation
 
-    [YDLIDAR INFO] Now YDLIDAR SDK VERSION: 1.4.3
-    [YDLIDAR INFO] Connection established in /dev/ttyUSB0[115200]:
-    [YDLIDAR]:SDK Version: 1.4.3
-    [YDLIDAR][0.001000s]:Lidar running correctly ! The health status: good
-    [YDLIDAR][0.003000s] Device Info:
-    Firmware version: 1.3
-    Hardware version: 3
-    Model: S2Pro[4]
-    Serial: 2020080400011111
-    [YDLIDAR INFO][0.003000s] Current Scan Frequency: 6.000000Hz
-    [YDLIDAR INFO] Current Sampling Rate : 3K
-    [YDLIDAR INFO][0.010000s] single channel:  0
-    LiDAR init success!
-    [YDLIDAR INFO][1.043000s] Now YDLIDAR is scanning ......
-    Scan received: 377 ranges in 7.978732 HZ
+* [Fork and then Clone S2-Pro's GitHub code](https://github.com/YDLIDAR/S2-Pro) 
 
+* [Build and Install](doc/howto/how_to_build_and_install.md) - This step is required
+
+## Documents
+* [LiDAR Dataset](doc/Dataset.md): All you need to know about LiDAR Models.
+
+* [SDK FlowChart](doc/Diagram.md): Development flowchart.
+
+* [YDLIDAR SDK API for Developers](doc/S2_Pro_SDK_API_for_Developers.md): All you need to know about S2-Pro API
+
+
+* [HowTo](doc/howto/README.md): Brief technical solutions to common problems that developers face during the installation and use of the S2-Pro 
+
+* [FAQs](doc/FAQs/README.md) 
+
+
+## Support
+
+You can get support from YDLidar with the following methods:
+* Send email to support@ydlidar.com with a clear description of your problem and your setup
+* Github Issues
+
+## Contact EAI
+![Development Path](doc/images/EAI.png)
+
+If you have any extra questions, please feel free to [contact us](http://www.ydlidar.cn/cn/contact)
 
