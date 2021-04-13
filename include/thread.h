@@ -1,5 +1,6 @@
 #pragma once
 #include "v8stdint.h"
+#include "LogModule.h"
 
 #ifdef _WIN32
 #include <conio.h>
@@ -121,9 +122,11 @@ class Thread {
 
     if (res == PTHREAD_CANCELED) {
       printf("%lu thread has been canceled\n", this->_handle);
+      LOG_INFO("%lu thread has been canceled",this->_handle);
       this->_handle = 0;
     } else {
       printf("%lu thread wasn't canceled (shouldn't happen!)\n", this->_handle);
+      LOG_ERROR("%lu thread wasn't canceled (shouldn't happen!)",this->_handle);
     }
 
 #endif

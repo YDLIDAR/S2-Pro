@@ -293,6 +293,7 @@ result_t YDlidarDriver::getHealth(device_health &health, uint32_t timeout) {
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][Device health]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[Device health]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -323,6 +324,7 @@ result_t YDlidarDriver::getDeviceInfo(device_info &info, uint32_t timeout) {
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][Device info]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[Device info]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -359,6 +361,7 @@ result_t YDlidarDriver::getScanFrequency(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[get scan frequency]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -394,6 +397,7 @@ result_t YDlidarDriver::setScanFrequencyAdd(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency add]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[get scan frequency add]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -429,6 +433,7 @@ result_t YDlidarDriver::setScanFrequencyDis(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency dis]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[get scan frequency dis]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -464,6 +469,7 @@ result_t YDlidarDriver::setScanFrequencyAddMic(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency add mic]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[get scan frequency add mic]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -534,6 +540,7 @@ result_t YDlidarDriver::getZeroOffsetAngle(offset_angle_t &angle,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get zero offset angle]: %s\n",
              ydlidar::protocol::DescribeError(err));
+      LOG_ERROR("[get zero offset angle]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -657,6 +664,7 @@ int YDlidarDriver::cacheScanData() {
       if (!IS_TIMEOUT(ans) || timeout_count > DEFAULT_TIMEOUT_COUNT) {
         if (!isAutoReconnect) {
           fprintf(stderr, "exit scanning thread!!\n");
+          LOG_ERROR("exit scanning thread!!","");
           fflush(stderr);
           {
             m_isScanning = false;
@@ -665,6 +673,7 @@ int YDlidarDriver::cacheScanData() {
         } else {//做异常处理, 重新连接
           isAutoconnting = true;
           printf("Starting automatic reconnection.....\n");
+          LOG_ERROR("Starting automatic reconnection.....","");
 
           while (isAutoReconnect && isAutoconnting) {
             {
@@ -684,6 +693,7 @@ int YDlidarDriver::cacheScanData() {
                    connect(serial_port.c_str(), baudrate_) != RESULT_OK) {
               printf("Waiting for the Lidar serial port[%s] to be available in [%d]\n",
                      serial_port.c_str(), baudrate_);
+              LOG_ERROR("Waiting for the Lidar serial port[%s] to be available in [%d]",serial_port.c_str(), baudrate_);
               fflush(stdout);
               delay(1000);
               this->setDriverError(DeviceNotFoundError);
@@ -712,6 +722,7 @@ int YDlidarDriver::cacheScanData() {
 
                 isAutoconnting = false;
                 printf("automatic connection succeeded\n");
+                LOG_INFO("automatic connection succeeded","");
               } else {
                 setDriverError(LidarNotFoundError);
               }
@@ -736,6 +747,8 @@ int YDlidarDriver::cacheScanData() {
         }
 
         printf("timeout[%d]: %s\n", timeout_count,
+               ydlidar::protocol::DescribeError(m_error_info));
+        printf("timeout[%d]: %s",timeout_count,
                ydlidar::protocol::DescribeError(m_error_info));
         fflush(stdout);
         local_scan.sync_flag =  Node_NotSync;

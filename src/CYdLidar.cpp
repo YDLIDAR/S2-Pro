@@ -26,6 +26,7 @@
 #include <map>
 #include <numeric>
 #include "angles.h"
+#include "LogModule.h"
 
 
 using namespace std;
@@ -480,6 +481,7 @@ bool  CYdLidar::turnOn() {
   lidarPtr->setAutoReconnect(m_AutoReconnect);
   printf("[YDLIDAR INFO][%fs] Now YDLIDAR is scanning ......\n",
          (getms() - startTs) / 1000.0);
+  LOG_INFO("[%fs] Now YDLIDAR is scanning ......",(getms() - startTs) / 1000.0);
   fflush(stdout);
   return true;
 }
@@ -494,6 +496,7 @@ bool  CYdLidar::turnOff() {
 
   if (isScanning) {
     printf("[YDLIDAR INFO] Now YDLIDAR Scanning has stopped ......\n");
+    LOG_INFO("Now YDLIDAR Scanning has stopped ......","");
   }
 
   isScanning = false;
@@ -547,10 +550,13 @@ bool CYdLidar::getDeviceHealth(uint32_t timeout) {
     printf("[YDLIDAR][%fs]:Lidar running correctly ! The health status: %s\n",
            (getms() - startTs) / 1000.0,
            (int)healthinfo.status == 0 ? "good" : "bad");
+    LOG_INFO("[%fs]:Lidar running correctly ! The health status: %s",(getms() - startTs) / 1000.0,
+             (int)healthinfo.status == 0 ? "good" : "bad");
 
     if (healthinfo.status == 2) {
       fprintf(stderr,
               "Error, YDLIDAR internal error detected. Please reboot the device to retry.\n");
+      LOG_ERROR("Error, YDLIDAR internal error detected. Please reboot the device to retry.","");
       return false;
     } else {
       return true;
@@ -605,6 +611,7 @@ bool CYdLidar::getDeviceInfo(uint32_t timeout) {
   checkScanFrequency();
   //checkZeroOffsetAngle();
   printf("[YDLIDAR INFO] Current Sampling Rate : %dK\n", sample_rate);
+  LOG_INFO(" Current Sampling Rate : %dK",sample_rate)
   return true;
 }
 
@@ -661,6 +668,7 @@ bool CYdLidar::checkScanFrequency() {
   fixed_size = sample_rate * 1000 / (m_ScanFrequency - 0.1);
   printf("[YDLIDAR INFO][%fs] Current Scan Frequency: %fHz\n",
          (getms() - startTs) / 1000.0, m_ScanFrequency);
+  LOG_INFO("[%fs] Current Scan Frequency: %fHz",(getms() - startTs) / 1000.0, m_ScanFrequency);
   return true;
 }
 
@@ -676,11 +684,13 @@ bool CYdLidar::checkZeroOffsetAngle() {
     zero_offset_angle = angle.angle / 4.0;
     printf("[YDLIDAR INFO][%fs] Obtained Zero Offset Angle[%f°] \n",
            (getms() - startTs) / 1000.0, zero_offset_angle);
+    LOG_INFO("[%fs] Obtained Zero Offset Angle[%f°] ",(getms() - startTs) / 1000.0, zero_offset_angle);
     fflush(stdout);
     ret = true;
   } else {
     printf("[YDLIDAR ERROR][%fs] Failed to Get Zero Offset Angle[%f°] \n",
            (getms() - startTs) / 1000.0, zero_offset_angle);
+    LOG_ERROR("[%fs] Failed to Get Zero Offset Angle[%f°] ",(getms() - startTs) / 1000.0, zero_offset_angle);
     fflush(stdout);
   }
 
@@ -713,16 +723,20 @@ bool CYdLidar::checkStatus() {
 bool  CYdLidar::checkCOMMs() {
   if (!lidarPtr) {
     printf("YDLidar SDK initializing\n");
+    LOG_INFO("YDLidar SDK initializing","");
     // create the driver instance
     lidarPtr = new YDlidarDriver();
 
     if (!lidarPtr) {
       fprintf(stderr, "Create Driver fail\n");
+      LOG_ERROR("Create Driver fail","");
       return false;
 
     }
 
     printf("YDLidar SDK has been initialized\n");
+    LOG_INFO("YDLidar SDK has been initialized","");
+    LOG_INFO("SDK Version: %s",YDlidarDriver::getSDKVersion().c_str())
     printf("[YDLIDAR]:SDK Version: %s\n", YDlidarDriver::getSDKVersion().c_str());
     fflush(stdout);
   }
@@ -749,14 +763,18 @@ bool  CYdLidar::checkCOMMs() {
     fprintf(stderr,
             "[CYdLidar] Error, cannot bind to the specified serial port[%s] and baudrate[%d]\n",
             m_SerialPort.c_str(), m_SerialBaudrate);
+    LOG_ERROR("Error, cannot bind to the specified serial port[%s] and baudrate[%d]",m_SerialPort.c_str(), m_SerialBaudrate);
     return false;
   }
 
   printf("[YDLIDAR INFO] Connection established in %s[%d]:\n",
          m_SerialPort.c_str(),
          m_SerialBaudrate);
+  LOG_INFO("Connection established in %s[%d]:",m_SerialPort.c_str(),
+           m_SerialBaudrate);
   fflush(stdout);
   printf("LiDAR successfully connected\n");
+  LOG_INFO("LiDAR successfully connected","");
   isConnected = true;
   return true;
 }
@@ -782,19 +800,22 @@ bool CYdLidar::checkHardware() {
 -------------------------------------------------------------*/
 bool CYdLidar::initialize() {
   if (!checkCOMMs()) {
+      LOG_ERROR("Error initializing YDLIDAR scanner","");
     fprintf(stderr, "[CYdLidar::initialize] Error initializing YDLIDAR scanner.\n");
     fflush(stderr);
     return false;
   }
 
   if (!checkStatus()) {
+      LOG_ERROR("Error initializing YDLIDAR check status under [%s] and [%d].",m_SerialPort.c_str(), m_SerialBaudrate);
     fprintf(stderr,
-            "[CYdLidar::initialize] Error initializing YDLIDAR check status under [%s] and [%d].\n",
+            "[CYdLidar::initialize] Error initializing YDLIDAR check status under [%s] and [%d].",
             m_SerialPort.c_str(), m_SerialBaudrate);
     fflush(stderr);
     return false;
   }
 
+  LOG_INFO("LiDAR init success!","");
   printf("LiDAR init success!\n");
   fflush(stdout);
   return true;

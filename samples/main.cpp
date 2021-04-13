@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
     } else {
       printf("[YDLIDAR ERROR]: %s\n",
              ydlidar::protocol::DescribeError(laser.getDriverError()));
+      LOG_ERROR("%s",ydlidar::protocol::DescribeError(laser.getDriverError()));
       fflush(stdout);
     }
   }
