@@ -16,4 +16,4 @@ ADD_EXECUTABLE(${PROJECT_NAME}
                main.cpp)
 
 # Add the required libraries for linking:
-TARGET_LINK_LIBRARIES(${PROJECT_NAME} ydlidar_driver)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} ydlidar_s2pro)
