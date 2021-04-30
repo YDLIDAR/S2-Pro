@@ -21,19 +21,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-/** @page YDlidarDriver
- * YDlidarDriver API
-    <table>
-        <tr><th>Library     <td>YDlidarDriver
-        <tr><th>File        <td>ydlidar_driver.h
-        <tr><th>Author      <td>Tony [code at ydlidar com]
-        <tr><th>Source      <td>https://github.com/ydlidar/S2-Pro
-        <tr><th>Version     <td>1.0.0
-    </table>
-
-* @copyright    Copyright (c) 2018-2020  EAIBOT
-     Jump to the @link ::ydlidar::YDlidarDriver @endlink interface documentation.
-*/
 #ifndef YDLIDAR_DRIVER_H
 #define YDLIDAR_DRIVER_H
 #include <stdlib.h>
@@ -72,29 +59,29 @@ class YDlidarDriver {
   virtual ~YDlidarDriver();
 
   /**
-   * @brief Connecting Lidar \n
-   * After the connection if successful, you must use ::disconnect to close
-   * @param[in] port_path    serial port
-   * @param[in] baudrate    serial baudrate，S2-Pro：
-   *     115200
-   * @return connection status
-   * @retval 0     success
-   * @retval < 0   failed
-   * @note After the connection if successful, you must use ::disconnect to close
-   * @see function ::YDlidarDriver::disconnect ()
-   */
+  * @brief 连接雷达 \n
+    * 连接成功后，必须使用::disconnect函数关闭
+    * @param[in] port_path    串口号
+    * @param[in] fileMode    波特率，YDLIDAR雷达有以下几个波特率：
+    *     115200 S2
+    * @return 返回连接状态
+  * @retval 0     成功
+    * @retval < 0   失败
+    * @note连接成功后，必须使用::disconnect函数关闭
+    * @see 函数::YDlidarDriver::disconnect (“::”是指定有连接功能,可以看文档里的disconnect变成绿,点击它可以跳转到disconnect.)
+    */
   result_t connect(const char *port_path, uint32_t baudrate);
 
-  /*!
-  * @brief Disconnect the LiDAR.
-  */
+  /**
+  * @brief 断开雷达连接
+    */
   void disconnect();
 
   /**
-  * @brief Get SDK Version \n
-  * static function
-  * @return Version
-  */
+  * @brief 获取当前SDK版本号 \n
+    * 静态函数
+    * @return 返回当前SKD 版本号
+    */
   static std::string getSDKVersion();
 
 
@@ -104,21 +91,20 @@ class YDlidarDriver {
    */
   lidar_error_t getDriverError();
   /**
-   * @brief get Health status \n
-   * @return result status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE or RESULT_TIMEOUT   failed
+   * @brief getHealth
+   * @param health
+   * @param timeout
+   * @return
    */
   result_t getHealth(device_health &health, uint32_t timeout = DEFAULT_TIMEOUT);
 
   /**
-   * @brief get Device information \n
-   * @param[in] info     Device information
-   * @param[in] timeout  timeout
-   * @return result status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE or RESULT_TIMEOUT   failed
+   * @brief getDeviceInfo
+   * @param info
+   * @param timeout
+   * @return
    */
+
   result_t getDeviceInfo(device_info &info, uint32_t timeout = DEFAULT_TIMEOUT);
 
   /**
@@ -194,25 +180,25 @@ class YDlidarDriver {
   result_t getZeroOffsetAngle(offset_angle_t &angle,
                               uint32_t timeout =  DEFAULT_TIMEOUT);
 
+
   /**
-    * @brief lidarPortList Get Lidar Port lists
-    * @return online lidars
-    */
+   * @brief 获取雷达列表
+   * 静态函数
+   * @return map:第一个参数是雷达别名, 第二个参数是当前串口号
+   */
   static std::map<std::string, std::string> lidarPortList();
 
   /**
-   * @brief Is it connected to the lidar \n
-   * @return connection status
-   * @retval true     connected
-   * @retval false    Non-connected
-   */
+  * @brief 连接雷达状态 \n
+    * @return 返回连接状态
+  * @retval true     成功
+    * @retval false    失败
+    */
   bool isConnected() const;
 
   /**
-   * @brief Is the Lidar in the scan \n
-   * @return scanning status
-   * @retval true     scanning
-   * @retval false    non-scanning
+   * @brief isScanning
+   * @return
    */
   bool isScanning() const;
 
@@ -229,11 +215,11 @@ class YDlidarDriver {
   uint32_t getPackageTransferTime() const;
 
   /**
-   * @brief whether to support hot plug \n
-   * @param[in] enable    hot plug :
-   *   true	support
-   *   false no support
-   */
+  * @brief 设置雷达异常自动重新连接 \n
+  * @param[in] enable    是否开启自动重连:
+  *     true	开启
+  *	  false 关闭
+  */
   void setAutoReconnect(const bool &enable);
 
   /**
@@ -243,15 +229,21 @@ class YDlidarDriver {
   void setSingleChannel(bool enable);
 
   /**
-   * @brief Turn on scanning \n
-   * @param[in] force    Scan mode
-   * @param[in] timeout  timeout
-   * @return result status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE    failed
-   * @note Just turn it on once
+   * @brief setIntensity
+   * @param isIntensity
    */
-  result_t startScan(uint32_t timeout = DEFAULT_TIMEOUT) ;
+  void setIntensity(int value);
+
+  /**
+  * @brief 开启扫描 \n
+    * @param[in] force    扫描模式
+    * @param[in] timeout  超时时间
+    * @return 返回执行结果
+    * @retval RESULT_OK       开启成功
+    * @retval RESULT_FAILE    开启失败
+  * @note 只用开启一次成功即可
+    */
+  result_t startScan(bool force = false, uint32_t timeout = DEFAULT_TIMEOUT) ;
 
   /*!
    * @brief stop Scanning state
@@ -262,42 +254,41 @@ class YDlidarDriver {
    */
   result_t stopScan(uint32_t timeout = DEFAULT_TIMEOUT);
 
-
   /**
-   * @brief turn off scanning \n
-   * @return result status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE    failed
-   */
+  * @brief 关闭扫描 \n
+    * @return 返回执行结果
+    * @retval RESULT_OK       关闭成功
+    * @retval RESULT_FAILE    关闭失败
+    */
   result_t stop();
 
 
   /**
-   * @brief Get a circle of laser data \n
-   * @param[in] fan        Laser data
-   * @param[in] count      one circle of laser points
-   * @param[in] timeout    timeout
-   * @return return status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE    failed
-   * @note Before starting, you must start the start the scan successfully with the ::startScan function
-   */
-  result_t grabScanData(LaserFan *fan, uint32_t timeout = DEFAULT_TIMEOUT) ;
+  * @brief 获取激光数据 \n
+    * @param[in] nodebuffer 激光点信息
+  * @param[in] count      一圈激光点数
+    * @param[in] timeout    超时时间
+    * @return 返回执行结果
+    * @retval RESULT_OK       获取成功
+    * @retval RESULT_FAILE    获取失败
+  * @note 获取之前，必须使用::startScan函数开启扫描
+    */
+  result_t grabScanData(LaserFan *fan, uint32_t timeout = DEFAULT_TIMEOUT);
 
   /**
-   * @brief start motor \n
-   * @return return status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE    failed
-   */
+  * @brief 打开电机 \n
+    * @return 返回执行结果
+    * @retval RESULT_OK       成功
+    * @retval RESULT_FAILE    失败
+    */
   result_t startMotor();
 
   /**
-   * @brief stop motor \n
-   * @return return status
-   * @retval RESULT_OK       success
-   * @retval RESULT_FAILE    failed
-   */
+  * @brief 关闭电机 \n
+    * @return 返回执行结果
+    * @retval RESULT_OK       成功
+    * @retval RESULT_FAILE    失败
+    */
   result_t stopMotor();
 
   /**
@@ -308,107 +299,106 @@ class YDlidarDriver {
  protected:
 
   /**
-  * @brief Data parsing thread \n
-  * @note Before you create a dta parsing thread, you must use the ::startScan function to start the lidar scan successfully.
-  */
+  * @brief 创建解析雷达数据线程 \n
+  * @note 创建解析雷达数据线程之前，必须使用::startScan函数开启扫图成功
+    */
   result_t createThread();
 
-  /**
-  * @brief Automatically reconnect the lidar \n
-  * @param[in] force    scan model
-  * @param[in] timeout  timeout
-  * @return return status
-  * @retval RESULT_OK       success
-  * @retval RESULT_FAILE    failed
-  * @note Lidar abnormality automatically reconnects.
-  */
-  result_t startAutoScan(uint32_t timeout = DEFAULT_TIMEOUT) ;
 
   /**
-  * @brief Unpacking \n
-  * @param[in] package lidar point information
-  * @param[in] timeout     timeout
+  * @brief 重新连接开启扫描 \n
+  * @param[in] force    扫描模式
+  * @param[in] timeout  超时时间
+  * @return 返回执行结果
+  * @retval RESULT_OK       开启成功
+  * @retval RESULT_FAILE    开启失败
+  * @note sdk 自动重新连接调用
   */
+  result_t startAutoScan(bool force = false, uint32_t timeout = DEFAULT_TIMEOUT) ;
+
+  /**
+  * @brief 解包激光数据 \n
+    * @param[in] node 解包后激光点信息
+  * @param[in] timeout     超时时间
+    */
   result_t waitPackage(LaserFan &package, uint32_t timeout = DEFAULT_TIMEOUT);
 
   /**
-  * @brief get unpacked data \n
-  * @param[in] package laser node
-  * @param[in] count      lidar points size
-  * @param[in] timeout      timeout
-  * @return result status
-  * @retval RESULT_OK       success
-  * @retval RESULT_TIMEOUT  timeout
-  * @retval RESULT_FAILE    failed
-  */
+  * @brief 发送数据到雷达 \n
+    * @param[in] nodebuffer 激光信息指针
+    * @param[in] count      激光点数大小
+  * @param[in] timeout      超时时间
+  * @return 返回执行结果
+    * @retval RESULT_OK       成功
+  * @retval RESULT_TIMEOUT  等待超时
+    * @retval RESULT_FAILE    失败
+    */
   result_t waitScanData(LaserFan &package, uint32_t timeout = DEFAULT_TIMEOUT);
 
   /**
-    * @brief data parsing thread \n
+  * @brief 激光数据解析线程 \n
     */
   int cacheScanData();
 
   /**
-  * @brief send data to lidar \n
-  * @param[in] cmd 	 command code
-  * @param[in] payload      payload
+  * @brief 发送数据到雷达 \n
+    * @param[in] cmd 	 命名码
+    * @param[in] payload      payload
   * @param[in] payloadsize      payloadsize
-  * @return result status
-  * @retval RESULT_OK       success
-  * @retval RESULT_FAILE    failed
-  */
+  * @return 返回执行结果
+    * @retval RESULT_OK       成功
+    * @retval RESULT_FAILE    失败
+    */
   result_t sendCommand(uint8_t cmd, const void *payload = NULL,
                        size_t payloadsize = 0);
 
   /**
-  * @brief Waiting for the specified size data from the lidar \n
-  * @param[in] data_count 	 wait max data size
-  * @param[in] timeout    	 timeout
-  * @param[in] returned_size   really data size
-  * @return return status
-  * @retval RESULT_OK       success
-  * @retval RESULT_TIMEOUT  wait timeout
-  * @retval RESULT_FAILE    failed
-  * @note when timeout = -1, it will block...
-  */
+  * @brief 等待固定数量串口数据 \n
+    * @param[in] data_count 	 等待数据大小
+    * @param[in] timeout    	 等待时间
+  * @param[in] returned_size   实际数据大小
+  * @return 返回执行结果
+    * @retval RESULT_OK       获取成功
+  * @retval RESULT_TIMEOUT  等待超时
+    * @retval RESULT_FAILE    获取失败
+  * @note 当timeout = -1 时, 将一直等待
+    */
   result_t waitForData(size_t data_count, uint32_t timeout = DEFAULT_TIMEOUT,
                        size_t *returned_size = NULL);
 
   /**
-  * @brief get data from serial \n
-  * @param[in] data 	 data
-  * @param[in] size    date size
-  * @return return status
-  * @retval RESULT_OK       success
-  * @retval RESULT_FAILE    failed
-  */
+  * @brief 获取串口数据 \n
+    * @param[in] data 	 数据指针
+    * @param[in] size    数据大小
+  * @return 返回执行结果
+    * @retval RESULT_OK       获取成功
+    * @retval RESULT_FAILE    获取失败
+    */
   result_t getData(uint8_t *data, size_t size);
 
   /**
-  * @brief send data to serial \n
-  * @param[in] data 	 data
-  * @param[in] size    data size
-  * @return return status
-  * @retval RESULT_OK       success
-  * @retval RESULT_FAILE    failed
-  */
+  * @brief 串口发送数据 \n
+    * @param[in] data 	 发送数据指针
+    * @param[in] size    数据大小
+  * @return 返回执行结果
+    * @retval RESULT_OK       发送成功
+    * @retval RESULT_FAILE    发送失败
+    */
   result_t sendData(const uint8_t *data, size_t size);
 
   /**
-  * @brief disable Data scan channel \n
-  */
+  * @brief 关闭数据获取通道 \n
+    */
   void disableDataGrabbing();
 
-
-  /*!
-  * @brief set DTR \n
-  */
+  /**
+  * @brief 设置串口DTR \n
+    */
   void setDTR();
 
-
-  /*!
-  * @brief clear DTR \n
-  */
+  /**
+  * @brief 清除串口DTR \n
+    */
   void clearDTR();
 
   /**
@@ -423,61 +413,39 @@ class YDlidarDriver {
   void setDriverError(const lidar_error_t &er);
 
  public:
-  /* Variable for LIDAR compatibility */
-  /// LiDAR connected state
-  bool     m_isConnected;
-  /// LiDAR Scanning state
-  bool     m_isScanning;
-  /// auto reconnect
-  bool     isAutoReconnect;
-  /// auto connecting state
-  bool     isAutoconnting;
+  bool     m_isConnected;  ///< 串口连接状体
+  bool     m_isScanning;   ///< 扫图状态
+  bool     isAutoReconnect;  ///< 异常自动从新连接
+  bool     isAutoconnting;  ///< 是否正在自动连接中
+
 
   enum {
-    DEFAULT_TIMEOUT = 1000,    /**< Default timeout. */
-    MAX_SCAN_NODES = 2048,	   /**< Default Max Scan Count. */
+    DEFAULT_TIMEOUT = 500,    /**< 默认超时时间. */
+    MAX_SCAN_NODES = 2048,	   /**< 最大扫描点数. */
     DEFAULT_TIMEOUT_COUNT = 2,
   };
   enum {
-    YDLIDAR_F4      = 1,/**< F4 LiDAR Model. */
-    YDLIDAR_T1      = 2,/**< T1 LiDAR Model. */
-    YDLIDAR_F2      = 3,/**< F2 LiDAR Model. */
-    YDLIDAR_S4      = 4,/**< S4 LiDAR Model. */
-    YDLIDAR_G4      = 5,/**< G4 LiDAR Model. */
-    YDLIDAR_X4      = 6,/**< X4 LiDAR Model. */
-    YDLIDAR_G4PRO   = 7,/**< G4PRO LiDAR Model. */
-    YDLIDAR_F4PRO   = 8,/**< F4PRO LiDAR Model. */
-    YDLIDAR_R2      = 9,/**< R2 LiDAR Model. */
-    YDLIDAR_G10     = 10,/**< G10 LiDAR Model. */
-    YDLIDAR_S4B     = 11,/**< S4B LiDAR Model. */
-    YDLIDAR_S2      = 12,/**< S2 LiDAR Model. */
-    YDLIDAR_G6      = 13,/**< G6 LiDAR Model. */
-    YDLIDAR_G2A     = 14,/**< G2A LiDAR Model. */
-    YDLIDAR_G2B     = 15,/**< G2 LiDAR Model. */
-    YDLIDAR_G2C     = 16,/**< G2C LiDAR Model. */
-    YDLIDAR_G4B     = 17,/**< G4B LiDAR Model. */
-    YDLIDAR_G4C     = 18,/**< G4C LiDAR Model. */
-    YDLIDAR_G1      = 19,/**< G1 LiDAR Model. */
-    YDLIDAR_G5      = 20,/**< G5 LiDAR Model. */
-    YDLIDAR_G7      = 21,/**< G7 LiDAR Model. */
+    YDLIDAR_F4 = 1, /**< F4雷达型号代号. */
+    YDLIDAR_T1 = 2, /**< T1雷达型号代号. */
+    YDLIDAR_F2 = 3, /**< F2雷达型号代号. */
+    YDLIDAR_S4 = 4, /**< S4雷达型号代号. */
+    YDLIDAR_G4 = 5, /**< G4雷达型号代号. */
+    YDLIDAR_X4 = 6, /**< X4雷达型号代号. */
+    YDLIDAR_F4PRO = 6, /**< F4PRO雷达型号代号. */
+    YDLIDAR_G4C = 9, /**< G4C雷达型号代号. */
 
-    YDLIDAR_TG15    = 100,/**< TG15 LiDAR Model. */
-    YDLIDAR_TG30    = 101,/**< T30 LiDAR Model. */
-    YDLIDAR_TG50    = 102,/**< TG50 LiDAR Model. */
-
-    YDLIDAR_T15     = 200,/**< T15 LiDAR Model. */
-    YDLIDAR_Tail,
   };
-  Event          _dataEvent;			 ///< data event
-  Locker         _lock;				///< thread lock
-  Locker         _serial_lock;		///< serial lock
-  Locker         _error_lock;       ///< error lock
-  Thread 	     _thread;				///< thread id
+  Event          _dataEvent;			 ///< 数据同步事件
+  Locker         _lock;				///< 线程锁
+  Locker         _serial_lock;		///< 串口锁
+  Locker         _error_lock;       ///< 错误信息锁
+  Thread 	     _thread;				///< 线程id
 
  private:
-  serial::Serial *_serial;			///< serial
+  serial::Serial *_serial;			///< 串口
   LaserFan       m_global_fan;
-  std::string    serial_port;///< lidar port
+  uint8_t        global_sync_flag;
+  std::string    serial_port;///< 雷达端口
   uint32_t       baudrate_;
   bool           isSupportMotorCtrl;
   bool           single_channel;
@@ -486,6 +454,11 @@ class YDlidarDriver {
   uint32_t       package_transfer_time;
   lidar_error_t  m_error_info;
   ct_packet_t    m_global_ct;
+  bool           m_new_protocol;
+  int8_t         m_intensity_protocol;
+  uint32_t       m_error_info_time;
+  uint32_t       m_parsing_error_time;
+  int            serial_read_timeout_count;
 
 };
 }

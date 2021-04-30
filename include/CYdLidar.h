@@ -330,6 +330,7 @@ class YDLIDAR_API CYdLidar {
   bool m_Reversion;                 ///< LiDAR reversion
   bool m_Inverted;                  ///< LiDAR inverted
   bool m_AutoReconnect;             ///< LiDAR hot plug
+  bool m_Intensity;                 ///< LiDAR intensity
 
   int m_SerialBaudrate;             ///< LiDAR serial baudrate or network port
   int m_AbnormalCheckCount;         ///< LiDAR abnormal count

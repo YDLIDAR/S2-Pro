@@ -94,7 +94,9 @@ int main(int argc, char *argv[]) {
   laser.setlidaropt(LidarPropInverted, &b_optvalue, sizeof(bool));
   b_optvalue = true;
   laser.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
-
+  /// intensity
+  b_optvalue = false;
+  laser.setlidaropt(LidarPropIntenstiy, &b_optvalue, sizeof(bool));
 
   //////////////////////float property/////////////////
   /// unit: °
