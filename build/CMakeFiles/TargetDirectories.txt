@@ -1,0 +1,14 @@
+/opt/code/S2-Pro/build/CMakeFiles/install/strip.dir
+/opt/code/S2-Pro/build/CMakeFiles/install/local.dir
+/opt/code/S2-Pro/build/CMakeFiles/install.dir
+/opt/code/S2-Pro/build/CMakeFiles/list_install_components.dir
+/opt/code/S2-Pro/build/CMakeFiles/rebuild_cache.dir
+/opt/code/S2-Pro/build/CMakeFiles/edit_cache.dir
+/opt/code/S2-Pro/build/CMakeFiles/ydlidar_s2pro.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/install/strip.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/install/local.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/install.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/list_install_components.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/rebuild_cache.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/edit_cache.dir
+/opt/code/S2-Pro/build/samples/CMakeFiles/ydlidar_test.dir
