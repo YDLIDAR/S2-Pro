@@ -31,9 +31,13 @@ For the 64-bit project:
 In the YDLidar S2-Pro SDK directory, run the following commands to compile the project:
 ```
 git clone https://github.com/YDLIDAR/S2-Pro.git
-cd S2-Pro/build
+cd S2-Pro/
+git switch intensity
+mkdir build/
+cd build/
 cmake ..
 make
+sudo make install
 ```
 
 ### Windows 7/10
