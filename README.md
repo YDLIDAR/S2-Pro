@@ -27,7 +27,7 @@ YDLidar S2-Pro SDK consists of YDLidar S2-Pro SDK communication protocol, YDLida
 
 * [Fork and then Clone S2-Pro's GitHub code](https://github.com/YDLIDAR/S2-Pro) 
 
-* [Build and Install](doc/howto/how_to_build_and_install.md) - This step is required
+* [Build and Install](doc/howto/how_to_build_and_install.md) - This step is required,If you need to use it with ros, please switch to the intensity branch.
 
 ## Documents
 * [LiDAR Dataset](doc/Dataset.md): All you need to know about LiDAR Models.
