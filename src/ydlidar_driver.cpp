@@ -732,10 +732,34 @@ int YDlidarDriver::cacheScanData() {
     }
 
     if (local_fan.sync_flag) {
-//      if (local_scan.sync_flag) {
+      if (local_scan.sync_flag) {
 //        printf("scan frequency: %f Hz\n", local_fan.info.info[0] / 10.0);
 //        fflush(stdout);
-//      }
+        if (local_scan.points.size() >= 1) {//有一个小包，就触发数据事件
+          _lock.lock();//timeout lock, wait resource copy
+
+          if ((global_sync_flag && local_fan.sync_flag) ||
+              m_global_fan.points.size() > 3000) {
+            m_global_fan.points.clear();
+          }
+
+          if (local_fan.sync_flag) {
+            global_sync_flag = local_fan.sync_flag;
+          }
+
+          if (m_global_fan.points.size() >= 1 || local_scan.points.size() > 1) {
+            memcpy(&m_global_fan.info, &local_fan.info, sizeof(ct_packet_t));
+            m_global_fan.sync_flag = local_scan.sync_flag;
+            std::copy(local_scan.points.begin(), local_scan.points.end(),
+                      std::back_inserter(m_global_fan.points));
+            local_scan.points.clear();
+            memset(&local_scan.info, 0, sizeof(ct_packet_t));
+            _dataEvent.set();
+          }
+
+          _lock.unlock();
+        }
+      }
 
       local_scan = local_fan;
       local_scan.points.clear();
@@ -746,31 +770,7 @@ int YDlidarDriver::cacheScanData() {
                 std::back_inserter(local_scan.points));
     }
 
-    if (local_scan.points.size() >= 1 &&
-        local_scan.sync_flag) {//有一个小包，就触发数据事件
-      _lock.lock();//timeout lock, wait resource copy
 
-      if ((global_sync_flag && local_fan.sync_flag) ||
-          m_global_fan.points.size() > 3000) {
-        m_global_fan.points.clear();
-      }
-
-      if (local_fan.sync_flag) {
-        global_sync_flag = local_fan.sync_flag;
-      }
-
-      if (m_global_fan.points.size() >= 1 || local_scan.points.size() > 1) {
-        memcpy(&m_global_fan.info, &local_scan.info, sizeof(ct_packet_t));
-        m_global_fan.sync_flag = local_scan.sync_flag;
-        std::copy(local_scan.points.begin(), local_scan.points.end(),
-                  std::back_inserter(m_global_fan.points));
-        local_scan.points.clear();
-        memset(&local_scan.info, 0, sizeof(ct_packet_t));
-        _dataEvent.set();
-      }
-
-      _lock.unlock();
-    }
 
   }
 
