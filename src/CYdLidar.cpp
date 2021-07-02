@@ -53,11 +53,11 @@ CYdLidar::CYdLidar(): lidarPtr(nullptr) {
   isConnected         = false;
   m_GlassNoise        = true;
   m_SunNoise          = true;
-  point_interval_time = 1e9 / 3000;
+  point_interval_time = 1e9 / 5000;
   package_transfer_time = 0;
   last_node_time      = getTime();
   fixed_size          = 500;
-  sample_rate         = 3;
+  sample_rate         = 5;
   m_ScanFrequency     = 6.0;
   frequency_offset    = 0.0;
   zero_offset_angle   = 0.0;
@@ -175,6 +175,10 @@ bool CYdLidar::setlidaropt(int optname, const void *optval, int optlen) {
 
     case LidarPropAbnormalCheckCount:
       m_AbnormalCheckCount = *(int *)(optval);
+      break;
+
+    case LidarPropSampleRate:
+      sample_rate = *(int *)(optval);
       break;
 
     default :
