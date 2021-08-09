@@ -34,6 +34,7 @@ git clone https://github.com/YDLIDAR/S2-Pro.git
 cd S2-Pro/build
 cmake ..
 make
+sudo make install 
 ```
 
 ### Windows 7/10
