@@ -89,6 +89,15 @@ using namespace ydlidar;
  * @endcode
  */
 
+//畸变矫正项定义
+struct EaiCorrectItem {
+  bool enable = true; //是否启用
+  float left_angle = .0; //开始角度
+  float right_angle = .0; //结束角度
+  float duty = .0; //调整系数
+  float adj_dir = .0; //调整方向
+};
+
 
 class YDLIDAR_API CYdLidar {
  public:
@@ -260,6 +269,13 @@ class YDLIDAR_API CYdLidar {
    */
   lidar_error_t getDriverError() const;
 
+  //是否启用畸变矫正
+  void setEnableCorrection(bool yes);
+  //添加畸变矫正项
+  void addCorrectionItem(const EaiCorrectItem& item);
+  void setCorrectionItem(int index, const EaiCorrectItem& item);
+  int getCorrectionCount() const;
+
  protected:
   /** Returns true if communication has been established with the device. If it's not,
     *  try to create a comms channel.
@@ -305,6 +321,9 @@ class YDLIDAR_API CYdLidar {
   /** Returns true if the device information is correct, If it's not*/
   bool getDeviceInfo(uint32_t timeout = 500);
 
+  //畸变矫正函数
+  void correctPoint(LaserPoint& p);
+
  private:
   ydlidar::YDlidarDriver *lidarPtr;
   LaserFan               laser_packages;
@@ -330,6 +349,7 @@ class YDLIDAR_API CYdLidar {
   bool m_Reversion;                 ///< LiDAR reversion
   bool m_Inverted;                  ///< LiDAR inverted
   bool m_AutoReconnect;             ///< LiDAR hot plug
+  bool m_Intensity;                 ///< LiDAR intensity
 
   int m_SerialBaudrate;             ///< LiDAR serial baudrate or network port
   int m_AbnormalCheckCount;         ///< LiDAR abnormal count
@@ -339,5 +359,9 @@ class YDLIDAR_API CYdLidar {
   float m_MaxRange;                 ///< LiDAR maximum range
   float m_MinRange;                 ///< LiDAR minimum range
   float m_ScanFrequency;            ///< LiDAR scanning frequency
+  float m_SingleChannel = false; //单通
+
+  bool m_enableCorrect = true; //是否启用畸变校正
+  std::vector<EaiCorrectItem> cbadjs; //畸变矫正项
 };	// End of class
 

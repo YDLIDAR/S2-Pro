@@ -101,6 +101,11 @@ result_t read_response_scan_header_t(Serial *serial,
                                      node_package_header_t &header, ct_packet_t &ct,
                                      lidar_error_t &error, uint32_t timeout = READ_DEFAULT_TIMEOUT);
 
+bool is_valid_data(uint8_t *data, size_t size);
+
+result_t check_scan_protocol(Serial *serial, int8_t &protocol,
+                             uint32_t timeout = READ_DEFAULT_TIMEOUT);
+
 result_t read_response_scan_t(Serial *serial, scan_packet_t &scan,
                               ct_packet_t &ct,
                               lidar_error_t &error, uint32_t timeout = READ_DEFAULT_TIMEOUT);

@@ -1,26 +1,4 @@
-//
-// The MIT License (MIT)
-//
-// Copyright (c) 2020 EAIBOT. All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-//
+
 #include "ydlidar_driver.h"
 #include "common.h"
 #include <math.h>
@@ -70,12 +48,18 @@ YDlidarDriver::YDlidarDriver():
   isAutoconnting      = false;
   baudrate_           = 115200;
   isSupportMotorCtrl  = true;
-  single_channel      = false;
+  single_channel      = true;
 
   point_interval_time = 1e9 / 3000;
   transfer_delay      = 0;
   package_transfer_time       = 0;
   m_error_info        = NoError;
+  m_new_protocol      = false;
+  m_intensity_protocol = -1;
+  m_error_info_time = getms();
+  m_parsing_error_time = getms();
+  serial_read_timeout_count = 0;
+  global_sync_flag = 0;
   ydlidar::protocol::reset_ct_packet_t(m_global_ct);
 }
 
@@ -156,7 +140,7 @@ void YDlidarDriver::flushSerial() {
 
   if (len) {
     _serial->read(len);
-    delay(20);
+    delay(1);
   }
 }
 
@@ -174,10 +158,10 @@ result_t YDlidarDriver::startMotor() {
 
   if (isSupportMotorCtrl) {
     setDTR();
-    delay(500);
+    delay(100);
   } else {
     clearDTR();
-    delay(500);
+    delay(100);
   }
 
   return RESULT_OK;
@@ -192,10 +176,10 @@ result_t YDlidarDriver::stopMotor() {
 
   if (isSupportMotorCtrl) {
     clearDTR();
-    delay(500);
+    delay(100);
   } else {
     setDTR();
-    delay(500);
+    delay(100);
   }
 
   return RESULT_OK;
@@ -238,15 +222,11 @@ void YDlidarDriver::disconnect() {
 void YDlidarDriver::disableDataGrabbing() {
   {
     if (m_isScanning) {
+      m_isScanning = false;
       _dataEvent.set();
     }
   }
-
-  if (m_isScanning) {
-    _thread.join();
-  }
-
-  m_isScanning = false;
+  _thread.join();
 }
 
 bool YDlidarDriver::isConnected() const {
@@ -293,7 +273,6 @@ result_t YDlidarDriver::getHealth(device_health &health, uint32_t timeout) {
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][Device health]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[Device health]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -324,7 +303,6 @@ result_t YDlidarDriver::getDeviceInfo(device_info &info, uint32_t timeout) {
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][Device info]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[Device info]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -361,7 +339,6 @@ result_t YDlidarDriver::getScanFrequency(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[get scan frequency]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -397,7 +374,6 @@ result_t YDlidarDriver::setScanFrequencyAdd(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency add]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[get scan frequency add]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -433,7 +409,6 @@ result_t YDlidarDriver::setScanFrequencyDis(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency dis]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[get scan frequency dis]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -469,7 +444,6 @@ result_t YDlidarDriver::setScanFrequencyAddMic(scan_frequency_t &frequency,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get scan frequency add mic]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[get scan frequency add mic]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -540,7 +514,6 @@ result_t YDlidarDriver::getZeroOffsetAngle(offset_angle_t &angle,
     if (!IS_OK(ans)) {
       printf("[YDLIDAR ERROR][get zero offset angle]: %s\n",
              ydlidar::protocol::DescribeError(err));
-      LOG_ERROR("[get zero offset angle]: %s",ydlidar::protocol::DescribeError(err));
       fflush(stdout);
     }
   }
@@ -651,11 +624,20 @@ int YDlidarDriver::cacheScanData() {
   local_fan.points.clear();
   local_scan.points.clear();
   m_error_info         = NoError;
+  m_new_protocol       = false;
   ydlidar::protocol::reset_ct_packet_t(m_global_ct);
+  m_error_info_time = getms();
+  ans = ydlidar::protocol::check_scan_protocol(_serial, m_intensity_protocol);
+  printf("[YDLIDAR INFO] check protocol[%fs]: %d\n",
+         (getms() - m_error_info_time) / 1000.0,
+         ans);
+  fflush(stdout);
   waitScanData(local_fan);
   int timeout_count = 0;
-  int package_error = 0;
-  lidar_error_t m_last_error = m_error_info;
+  m_error_info_time = getms();
+  m_parsing_error_time = getms();
+  serial_read_timeout_count = 0;
+  global_sync_flag = 0;
 
   while (m_isScanning) {
     ans = waitScanData(local_fan);
@@ -663,17 +645,18 @@ int YDlidarDriver::cacheScanData() {
     if (!IS_OK(ans)) {
       if (!IS_TIMEOUT(ans) || timeout_count > DEFAULT_TIMEOUT_COUNT) {
         if (!isAutoReconnect) {
-          fprintf(stderr, "exit scanning thread!!\n");
-          LOG_ERROR("exit scanning thread!!","");
-          fflush(stderr);
+          printf("exit scanning thread!!\n");
+          fflush(stdout);
           {
             m_isScanning = false;
           }
           return RESULT_FAIL;
         } else {//做异常处理, 重新连接
           isAutoconnting = true;
+          m_error_info_time = getms();
+          m_parsing_error_time = getms();
           printf("Starting automatic reconnection.....\n");
-          LOG_ERROR("Starting automatic reconnection.....","");
+          fflush(stdout);
 
           while (isAutoReconnect && isAutoconnting) {
             {
@@ -693,7 +676,6 @@ int YDlidarDriver::cacheScanData() {
                    connect(serial_port.c_str(), baudrate_) != RESULT_OK) {
               printf("Waiting for the Lidar serial port[%s] to be available in [%d]\n",
                      serial_port.c_str(), baudrate_);
-              LOG_ERROR("Waiting for the Lidar serial port[%s] to be available in [%d]",serial_port.c_str(), baudrate_);
               fflush(stdout);
               delay(1000);
               this->setDriverError(DeviceNotFoundError);
@@ -712,8 +694,9 @@ int YDlidarDriver::cacheScanData() {
 
               if (IS_OK(ans)) {
                 timeout_count = 0;
-                package_error = 0;
                 local_scan.sync_flag =  Node_NotSync;
+                m_error_info_time = getms();
+                m_parsing_error_time = getms();
 
                 if (getDriverError() == LidarNotFoundError ||
                     getDriverError() == DeviceNotFoundError) {
@@ -722,7 +705,7 @@ int YDlidarDriver::cacheScanData() {
 
                 isAutoconnting = false;
                 printf("automatic connection succeeded\n");
-                LOG_INFO("automatic connection succeeded","");
+                fflush(stdout);
               } else {
                 setDriverError(LidarNotFoundError);
               }
@@ -732,48 +715,50 @@ int YDlidarDriver::cacheScanData() {
         }
 
       } else {
-        if (m_error_info == NoError) {
-          setDriverError(TimeoutError);
-        }
+        timeout_count++;
+        lidar_error_t err = m_error_info;
 
-        if (m_error_info != ReadError) {
-          package_error++;
-
-          if (package_error % 2 == 0) {
-            timeout_count++;
-          }
-        } else {
-          timeout_count++;
+        if (serial_read_timeout_count > 0 && m_error_info == NoError) {
+          err = ReadError;
         }
 
         printf("timeout[%d]: %s\n", timeout_count,
-               ydlidar::protocol::DescribeError(m_error_info));
-        printf("timeout[%d]: %s",timeout_count,
-               ydlidar::protocol::DescribeError(m_error_info));
+               ydlidar::protocol::DescribeError(err));
         fflush(stdout);
         local_scan.sync_flag =  Node_NotSync;
       }
     } else {
       timeout_count = 0;
-      package_error = 0;
     }
-
-    if (m_error_info != m_last_error) {
-      if (m_error_info == NoError) {
-        local_scan.sync_flag =  Node_NotSync;
-      }
-    }
-
-    m_last_error = m_error_info;
 
     if (local_fan.sync_flag) {
-      if ((local_scan.sync_flag)) {
-        _lock.lock();//timeout lock, wait resource copy
-        memcpy(&m_global_fan.info, &local_fan.info, sizeof(ct_packet_t));
-        m_global_fan.sync_flag = local_fan.sync_flag;
-        m_global_fan.points = local_scan.points;
-        _dataEvent.set();
-        _lock.unlock();
+      if (local_scan.sync_flag) {
+//        printf("scan frequency: %f Hz\n", local_fan.info.info[0] / 10.0);
+//        fflush(stdout);
+        if (local_scan.points.size() >= 1) {//有一个小包，就触发数据事件
+          _lock.lock();//timeout lock, wait resource copy
+
+          if ((global_sync_flag && local_fan.sync_flag) ||
+              m_global_fan.points.size() > 3000) {
+            m_global_fan.points.clear();
+          }
+
+          if (local_fan.sync_flag) {
+            global_sync_flag = local_fan.sync_flag;
+          }
+
+          if (m_global_fan.points.size() >= 1 || local_scan.points.size() > 1) {
+            memcpy(&m_global_fan.info, &local_fan.info, sizeof(ct_packet_t));
+            m_global_fan.sync_flag = local_scan.sync_flag;
+            std::copy(local_scan.points.begin(), local_scan.points.end(),
+                      std::back_inserter(m_global_fan.points));
+            local_scan.points.clear();
+            memset(&local_scan.info, 0, sizeof(ct_packet_t));
+            _dataEvent.set();
+          }
+
+          _lock.unlock();
+        }
       }
 
       local_scan = local_fan;
@@ -784,6 +769,9 @@ int YDlidarDriver::cacheScanData() {
       std::copy(local_fan.points.begin(), local_fan.points.end(),
                 std::back_inserter(local_scan.points));
     }
+
+
+
   }
 
 
@@ -798,25 +786,92 @@ result_t YDlidarDriver::waitPackage(LaserFan &package, uint32_t timeout) {
     return RESULT_FAIL;
   }
 
-  scan_packet_t scan;
-  memset(&scan, 0, sizeof(scan_packet_t));
   lidar_error_t error = NoError;
-  result_t ans = ydlidar::protocol::read_response_scan_t(_serial, scan,
-                 m_global_ct, error, timeout);
+  result_t ans = RESULT_FAIL;
+  scan_packet_t scan;
+  scan.header.packageSync = Node_NotSync;
+  scan_intensity_packet_t iscan;
+  iscan.header = scan.header;
+
+  if (m_intensity_protocol < 1) {
+    memset(&scan, 0, sizeof(scan_packet_t));
+    ans = ydlidar::protocol::read_response_scan_t(_serial, scan,
+          m_global_ct, error, timeout);
+  } else {
+    memset(&iscan, 0, sizeof(scan_intensity_packet_t));
+    ans = ydlidar::protocol::read_response_scan_intensity_t(_serial, iscan,
+          m_global_ct, error, timeout);
+  }
+
   memcpy(&package.info, &m_global_ct, sizeof(ct_packet_t));
 
   if (IS_OK(ans)) {
     package.points.clear();
-    package.sync_flag = scan.header.packageSync;
 
-    if (IS_OK(ydlidar::protocol::parse_payload(scan, package))) {
+    if (m_intensity_protocol < 1) {
+      package.sync_flag = scan.header.packageSync;
+    } else {
+      package.sync_flag = iscan.header.packageSync;
+
+    }
+
+    result_t ret = RESULT_FAIL;
+
+    if (m_intensity_protocol < 1) {
+      ret = ydlidar::protocol::parse_payload(scan, package);
+    } else {
+      ret = ydlidar::protocol::parse_intensity_payload(iscan, package);
+    }
+
+    if (IS_OK(ret)) {
       if (IS_OK(ydlidar::protocol::check_ct_packet_t(m_global_ct))) {
         error = ydlidar::protocol::convert_ct_packet_to_error(m_global_ct);
+
+        if (error >= EncodeError && error <= DataError) {
+          if (getms() - m_error_info_time < 3500) {
+            error = NoError;
+          } else {
+            printf("ct error time: %ums\n", getms() - m_error_info_time);
+            fflush(stdout);
+          }
+        } else {
+          m_error_info_time = getms();
+        }
+
         setDriverError(error);
+        m_new_protocol = true;
       }
     }
+
+    if (!m_new_protocol) {
+      setDriverError(error);
+    }
+
   } else {
     package.points.clear();
+    m_error_info_time = getms();
+
+    if (error >= HeaderError && error <= CheckSumError) {
+      if (getms() - m_parsing_error_time < 2000) {
+        error = NoError;
+      } else {
+        printf("package error time: %ums\n", getms() - m_parsing_error_time);
+        fflush(stdout);
+      }
+    } else {
+      m_parsing_error_time = getms();
+    }
+
+    if (error == ReadError) {
+      serial_read_timeout_count++;
+
+      if (serial_read_timeout_count <= 3) {
+        error = NoError;
+      }
+    } else {
+      serial_read_timeout_count = 0;
+    }
+
     setDriverError(error);
   }
 
@@ -838,13 +893,15 @@ result_t YDlidarDriver::grabScanData(LaserFan *fan, uint32_t timeout) {
       return RESULT_TIMEOUT;
 
     case Event::EVENT_OK: {
+      ScopedLocker l(_lock);
+
       if (m_global_fan.points.size() == 0) {
         return RESULT_FAIL;
       }
 
-      ScopedLocker l(_lock);
       *fan = m_global_fan;
       m_global_fan.points.clear();
+      global_sync_flag = 0;
     }
 
     return RESULT_OK;
@@ -870,10 +927,17 @@ void YDlidarDriver::setSingleChannel(bool enable) {
   single_channel = enable;
 }
 
+void YDlidarDriver::setIntensity(int value) {
+  m_intensity_protocol = value;
+  printf("[YDLIDAR INFO] set intensity protocol: %d\n",
+         m_intensity_protocol);
+  fflush(stdout);
+}
+
 /************************************************************************/
 /*  start to scan                                                       */
 /************************************************************************/
-result_t YDlidarDriver::startScan(uint32_t timeout) {
+result_t YDlidarDriver::startScan(bool force, uint32_t timeout) {
   result_t ans;
 
   if (!m_isConnected) {
@@ -884,13 +948,16 @@ result_t YDlidarDriver::startScan(uint32_t timeout) {
     return RESULT_OK;
   }
 
-  stop();
-  delay(10);
+  if (!single_channel) {
+    stop();
+    delay(10);
+  }
+
   startMotor();
   {
     ScopedLocker l(_lock);
 
-    if ((ans = sendCommand(LIDAR_CMD_SCAN)) !=
+    if ((ans = sendCommand(force ? LIDAR_CMD_FORCE_SCAN : LIDAR_CMD_SCAN)) !=
         RESULT_OK) {
       return ans;
     }
@@ -941,7 +1008,7 @@ result_t YDlidarDriver::createThread() {
 }
 
 
-result_t YDlidarDriver::startAutoScan(uint32_t timeout) {
+result_t YDlidarDriver::startAutoScan(bool force, uint32_t timeout) {
   result_t ans;
 
   if (!m_isConnected) {
@@ -952,7 +1019,8 @@ result_t YDlidarDriver::startAutoScan(uint32_t timeout) {
   {
     ScopedLocker l(_lock);
 
-    if ((ans = sendCommand(LIDAR_CMD_SCAN)) != RESULT_OK) {
+    if ((ans = sendCommand(force ? LIDAR_CMD_FORCE_SCAN : LIDAR_CMD_SCAN)) !=
+        RESULT_OK) {
       return ans;
     }
 

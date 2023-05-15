@@ -25,6 +25,8 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <fstream>
+
 using namespace std;
 using namespace ydlidar;
 
@@ -94,7 +96,12 @@ int main(int argc, char *argv[]) {
   laser.setlidaropt(LidarPropInverted, &b_optvalue, sizeof(bool));
   b_optvalue = true;
   laser.setlidaropt(LidarPropAutoReconnect, &b_optvalue, sizeof(bool));
+  /// intensity
+  b_optvalue = false;
+  laser.setlidaropt(LidarPropIntenstiy, &b_optvalue, sizeof(bool));
 
+  b_optvalue = true;
+  laser.setlidaropt(LidarPropSingleChannel, &b_optvalue, sizeof(bool));
 
   //////////////////////float property/////////////////
   /// unit: °
@@ -110,29 +117,89 @@ int main(int argc, char *argv[]) {
   /// unit: Hz
   laser.setlidaropt(LidarPropScanFrequency, &frequency, sizeof(float));
 
+  //畸变矫正初始化
+  laser.setEnableCorrection(true);
+// {true, 87, 107, 1, 1},
+// {true, 334, 354, 1, 1},
+// {true, 208, 228, 1, 1},
+// {true, 36, 51, 1.5, -1},
+// {true, 284, 304, 1.5, -1},
+// {true, 150, 170, 1.5, -1}};
+  EaiCorrectItem item;
+  item.enable = true;
+  item.left_angle = 87;
+  item.right_angle = 107;
+  item.duty = 1;
+  item.adj_dir = 1;
+  laser.addCorrectionItem(item);
+  item.enable = true;
+  item.left_angle = 334;
+  item.right_angle = 354;
+  item.duty = 1;
+  item.adj_dir = 1;
+  laser.addCorrectionItem(item);
+  item.enable = true;
+  item.left_angle = 208;
+  item.right_angle = 228;
+  item.duty = 1;
+  item.adj_dir = 1;
+  laser.addCorrectionItem(item);
+  item.enable = true;
+  item.left_angle = 36;
+  item.right_angle = 51;
+  item.duty = 1.5;
+  item.adj_dir = -1;
+  laser.addCorrectionItem(item);
+  item.enable = true;
+  item.left_angle = 284;
+  item.right_angle = 304;
+  item.duty = 1.5;
+  item.adj_dir = -1;
+  laser.addCorrectionItem(item);
+  item.enable = true;
+  item.left_angle = 150;
+  item.right_angle = 170;
+  item.duty = 1.5;
+  item.adj_dir = -1;
+  laser.addCorrectionItem(item);
+
 
   bool ret = laser.initialize();
 
   if (ret) {
-    laser.turnOn();
+      laser.turnOn();
   }
 
   LaserScan scan;
+  //日志文件
+  ofstream ofs;
+  ofs.open("data.log", ios::out | ios::trunc);
 
-  while (ret && ydlidar::ok()) {
-    bool hardError;
-    scan.points.clear();
+  while (ret && ydlidar::ok())
+  {
+      bool hardError;
+      scan.points.clear();
 
-    if (laser.doProcessSimple(scan, hardError)) {
-      fprintf(stdout, "Scan received: %u ranges in %f HZ\n",
-              (unsigned int)scan.points.size(), 1.0 / scan.config.scan_time);
-      fflush(stdout);
-    } else {
-      printf("[YDLIDAR ERROR]: %s\n",
-             ydlidar::protocol::DescribeError(laser.getDriverError()));
-      LOG_ERROR("%s",ydlidar::protocol::DescribeError(laser.getDriverError()));
-      fflush(stdout);
-    }
+      if (laser.doProcessSimple(scan, hardError))
+      {
+          fprintf(stdout, "Scan received: %u ranges in %f HZ\n",
+                  (unsigned int)scan.points.size(), 1.0 / scan.config.scan_time);
+          fflush(stdout);
+
+          for (size_t i=0; i<scan.points.size(); ++i)
+          {
+              const LaserPoint& p = scan.points.at(i);
+              ofs << i << " " << p.angle * 180.0f / M_PI << " " << p.range << endl;
+          }
+          ofs << endl;
+      }
+      else
+      {
+          printf("[YDLIDAR ERROR]: %s\n",
+                 ydlidar::protocol::DescribeError(laser.getDriverError()));
+          LOG_ERROR("%s",ydlidar::protocol::DescribeError(laser.getDriverError()));
+          fflush(stdout);
+      }
   }
 
   laser.turnOff();

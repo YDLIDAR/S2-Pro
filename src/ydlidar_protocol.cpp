@@ -1,26 +1,4 @@
-//
-// The MIT License (MIT)
-//
-// Copyright (c) 2020 EAIBOT. All rights reserved.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-// SOFTWARE.
-//
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -188,12 +166,12 @@ lidar_error_t convert_ct_packet_to_error(const ct_packet_t &ct) {
       err = LDError;
     }
 
-    if (ct.info[HEALTHINDEX] & response_health_error::SensorError) {
-      err = SensorError;
-    }
-
     if (ct.info[HEALTHINDEX] & response_health_error::EncodeError) {
       err = EncodeError;
+    }
+
+    if (ct.info[HEALTHINDEX] & response_health_error::SensorError) {
+      err = SensorError;
     }
   }
 
@@ -201,7 +179,7 @@ lidar_error_t convert_ct_packet_to_error(const ct_packet_t &ct) {
 
     if (ct.size > FREINDEX) {
       if (ct.info[FREINDEX] < 1) {
-        err = EncodeError;
+//        err = EncodeError;
       }
     }
   }
@@ -250,6 +228,7 @@ result_t read_command(Serial *serial, uint8_t *buffer, size_t size,
                       lidar_error_t &error,
                       uint32_t timeout) {
   assert(serial);
+
   result_t ans = wait_for_data(serial, size, timeout);
 
   if (!IS_OK(ans)) {
@@ -263,6 +242,7 @@ result_t read_command(Serial *serial, uint8_t *buffer, size_t size,
     error = ReadError;
     ans = RESULT_TIMEOUT;
   }
+
 
   return ans;
 }
@@ -494,6 +474,8 @@ result_t parse_payload(const scan_packet_t &scan, LaserFan &data) {
     }
 
     point.range = scan.payload[i].PackageSampleDistance;
+    point.interference_sign = scan.payload[i].PackageSampleSi;
+    point.intensity = 0;
 
     if (point.range > 0) {
       //180/M_PI=57.29578
@@ -546,7 +528,8 @@ result_t parse_intensity_payload(const scan_intensity_packet_t &scan,
       point.angle = scan.header.packageFirstSampleAngle;
     }
 
-    point.range = scan.payload[i].PackageSampleDistance;
+    point.range = scan.payload[i].PackageSample.PackageSampleDistance;
+    point.interference_sign = scan.payload[i].PackageSample.PackageSampleSi;
     point.intensity = scan.payload[i].PackageSampleIntensity;
 
     if (point.range > 0) {
@@ -648,13 +631,13 @@ uint16_t checksum_response_scan_packet_t(const scan_packet_t &scan) {
   data_ptr++;
 
   for (i = 0; i < scan.header.nowPackageNum; ++i) {
-    checksum ^= *data_ptr++;
-
     if (sizeof(node_package_payload_t) == 3) {//intensity protocol
       uint8_t *p1data_back = (uint8_t *)data_ptr;
       checksum ^= *p1data_back++;
       data_ptr = (uint16_t *)(p1data_back);
     }
+
+    checksum ^= *data_ptr++;
   }
 
   return checksum;
@@ -673,13 +656,13 @@ uint16_t checksum_response_scan_intensity_packet_t(
   data_ptr++;
 
   for (i = 0; i < scan.header.nowPackageNum; ++i) {
-    checksum ^= *data_ptr++;
-
     if (sizeof(node_package_intensity_payload_t) == 3) {//intensity protocol
       uint8_t *p1data_back = (uint8_t *)data_ptr;
       checksum ^= *p1data_back++;
       data_ptr = (uint16_t *)(p1data_back);
     }
+
+    checksum ^= *data_ptr++;
   }
 
   return checksum;
@@ -726,9 +709,13 @@ result_t parse_ct_packet_t(const node_package_header_t &header,
   return ans;
 }
 
-result_t read_response_scan_header_t(Serial *serial,
-                                     node_package_header_t &header, ct_packet_t &ct, lidar_error_t &error,
-                                     uint32_t timeout) {
+result_t read_response_scan_header_t(
+    Serial *serial,
+    node_package_header_t &header,
+    ct_packet_t &ct,
+    lidar_error_t &error,
+    uint32_t timeout)
+{
   assert(serial);
   uint32_t startTs = getms();
   uint32_t waitTime = 0;
@@ -739,7 +726,8 @@ result_t read_response_scan_header_t(Serial *serial,
                               error,
                               timeout);
 
-  if (!IS_OK(ans)) {
+  if (!IS_OK(ans))
+  {
     return ans;
   }
 
@@ -747,57 +735,82 @@ result_t read_response_scan_header_t(Serial *serial,
   ans = RESULT_TIMEOUT;
   uint8_t *p2header = (uint8_t *)&header;
 
-  while ((waitTime = (getms() - startTs)) < timeout) {
-    if (header.packageHeaderMSB != HEADER_MSB) {
+  while ((waitTime = (getms() - startTs)) < timeout)
+  {
+    if (header.packageHeaderMSB != HEADER_MSB)
+    {
       error = HeaderError;
       error_count++;
 
-      if (error_count == 1) {
+      if (error_count == 1)
+      {
         ct.crc = *p2header;
       }
 
       uint8_t *p2header_back = p2header + node_header_size - 1;
 
-      for (int i = 0; i < node_header_size - 1; ++i) {
+      for (int i = 0; i < node_header_size - 1; ++i)
+      {
         p2header[i] = p2header[i + 1];
       }
-
       ans = read_command(serial, p2header_back, 1, error, timeout - waitTime);
 
-      if (!IS_OK(ans)) {
+      if (!IS_OK(ans))
+      {
         return ans;
       }
 
       ans = RESULT_TIMEOUT;
-    } else {
-      uint8_t *p3header_back = p2header + node_header_size - 2;
-
-      if (header.packageHeaderLSB != HEADER_LSB) {
+    }
+    else
+    {
+      if (header.packageHeaderLSB != HEADER_LSB)
+      {
         error = HeaderError;
         error_count++;
 
-        for (int i = 0; i < node_header_size - 2; ++i) {
-          p2header[i] = p2header[i + 2];
+        if (header.packageHeaderLSB == HEADER_MSB)
+        {
+          uint8_t *p2header_back = p2header + node_header_size - 1;
+          for (int i = 0; i < node_header_size - 1; ++i)
+          {
+            p2header[i] = p2header[i + 1];
+          }
+          ans = read_command(serial, p2header_back, 1, error, timeout - waitTime);
+        }
+        else
+        {
+          uint8_t *p3header_back = p2header + node_header_size - 2;
+          for (int i = 0; i < node_header_size - 2; ++i)
+          {
+            p2header[i] = p2header[i + 2];
+          }
+          ans = read_command(serial, p3header_back, 2, error, timeout - waitTime);
         }
 
-        ans = read_command(serial, p3header_back, 2, error, timeout - waitTime);
-
-        if (!IS_OK(ans)) {
+        if (!IS_OK(ans))
+        {
           return ans;
         }
 
         ans = RESULT_TIMEOUT;
-      } else {
-        if (error == HeaderError) {
+      }
+      else
+      {
+        if (error == HeaderError)
+        {
           error = NoError;
         }
 
-        if (IS_OK(check_package_header_t(header, error))) {
+        if (IS_OK(check_package_header_t(header, error)))
+        {
           parse_ct_packet_t(header, error_count, ct);
           ans = RESULT_OK;
           error = NoError;
           break;
-        } else {
+        }
+        else
+        {
           p2header[0] = 0x00;
           ans = RESULT_TIMEOUT;
         }
@@ -807,6 +820,164 @@ result_t read_response_scan_header_t(Serial *serial,
     }
   }
 
+  return ans;
+}
+
+bool is_valid_data(uint8_t *data, size_t size) {
+  if (data == nullptr || size == 0) {
+    return false;
+  }
+
+  bool ret = false;
+
+  for (int i = 0; i < size; ++i) {
+    if (data[i] != 0x00) {
+      ret = true;
+      break;
+    }
+  }
+
+  return ret;
+}
+
+result_t check_scan_protocol(Serial *serial, int8_t &protocol,
+                             uint32_t timeout) {
+  assert(serial);
+
+  if (protocol > -1) {
+    return RESULT_OK;
+  }
+
+  uint32_t startTs = getms();
+  uint32_t waitTime = 0;
+  result_t ans = RESULT_TIMEOUT;
+  uint8_t scan_double_check = 0;
+  uint8_t invalid_scan_count = 0;
+  uint8_t iscan_double_check = 0;
+  uint8_t invalid_iscan_count = 0;
+
+  if (serial->available() > sizeof(scan_intensity_packet_t)) {
+    serial->flushInput();
+  }
+
+  while ((waitTime = (getms() - startTs)) < timeout * 2) {
+    scan_packet_t scan;
+    ct_packet_t ct;
+    lidar_error_t error;
+    ans = read_response_scan_header_t(serial, scan.header, ct, error,
+                                      timeout);
+
+    if (IS_OK(ans)) {
+      size_t size =  sizeof(node_package_payload_t) * scan.header.nowPackageNum;
+      ans = read_command(serial, (uint8_t *)&scan.payload, size, error,
+                         SCAN_DEFAULT_TIMEOUT);
+
+      size_t isize =  sizeof(node_package_intensity_payload_t) *
+                      scan.header.nowPackageNum;
+      scan_intensity_packet_t iscan;
+      iscan.header = scan.header;
+      memcpy(&iscan.payload, &scan.payload, size);
+      uint8_t *scan_buffer = reinterpret_cast<uint8_t *>(&iscan.payload);
+      size_t offset_size = size;
+      uint16_t buffer = 0;
+
+      if (IS_OK(ans)) {
+        if (checksum_response_scan_packet_t(scan) == scan.header.checkSum) {
+          ans = read_command(serial, (uint8_t *)&buffer, 2, error, SCAN_DEFAULT_TIMEOUT);
+
+          if (IS_OK(ans)) {
+            if (buffer == 0x55aa) {
+              if (is_valid_data((uint8_t *)&scan.payload, size)) {
+                scan_double_check++;
+                iscan_double_check = 0;
+              } else {
+                invalid_scan_count++;
+              }
+
+              invalid_iscan_count = 0;
+
+              if (scan_double_check > 2 || invalid_scan_count > 5) {
+                protocol = 0;
+                printf("[YDLIDAR INFO]: intensity: false\n");
+                fflush(stdout);
+                return ans;
+              } else {
+                continue;
+              }
+            } else {
+              scan_double_check = 0;
+              invalid_scan_count = 0;
+
+              if (scan.header.nowPackageNum == 1) {
+                memcpy(scan_buffer + offset_size, &buffer, 1);
+                offset_size += 1;
+              } else {
+                memcpy(scan_buffer + offset_size, &buffer, 2);
+                offset_size += 2;
+              }
+            }
+          }
+        } else {
+          scan_double_check = 0;
+          invalid_scan_count = 0;
+        }
+
+        if (protocol < 0) {
+          if (isize - offset_size > 0) {
+            ans = read_command(serial, scan_buffer + offset_size, isize - offset_size,
+                               error, SCAN_DEFAULT_TIMEOUT);
+          }
+
+          if (IS_OK(ans)) {
+            if (checksum_response_scan_intensity_packet_t(iscan) == iscan.header.checkSum) {
+              if (iscan.header.nowPackageNum == 1 && offset_size > size) {
+                uint8_t buf = 0;
+                ans = read_command(serial, (uint8_t *)&buf, 1, error, SCAN_DEFAULT_TIMEOUT);
+
+                if (IS_OK(ans)) {
+                  buffer = (buffer << 8 | buf);
+                }
+              } else {
+                ans = read_command(serial, (uint8_t *)&buffer, 2, error, SCAN_DEFAULT_TIMEOUT);
+              }
+
+              if (IS_OK(ans)) {
+                if (buffer == 0x55aa) {
+                  if (is_valid_data((uint8_t *)&iscan.payload, isize)) {
+                    iscan_double_check++;
+                    scan_double_check = 0;
+                  } else {
+                    invalid_iscan_count++;
+                  }
+
+                  invalid_scan_count = 0;
+
+                  if (iscan_double_check > 2 || invalid_iscan_count > 5) {
+                    protocol = 1;
+                    printf("[YDLIDAR INFO]: intensity: true\n");
+                    fflush(stdout);
+                    return ans;
+                  } else {
+                    continue;
+                  }
+
+                } else {
+                  iscan_double_check = 0;
+                  invalid_iscan_count = 0;
+                }
+              }
+            } else {
+              iscan_double_check = 0;
+              invalid_iscan_count = 0;
+            }
+          }
+        }
+
+      }
+    }
+  }
+
+  ans = RESULT_TIMEOUT;
   return ans;
 }
 

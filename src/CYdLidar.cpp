@@ -53,11 +53,12 @@ CYdLidar::CYdLidar(): lidarPtr(nullptr) {
   isConnected         = false;
   m_GlassNoise        = true;
   m_SunNoise          = true;
-  point_interval_time = 1e9 / 5000;
+  m_Intensity         = false;
+  point_interval_time = 1e9 / 3000;
   package_transfer_time = 0;
   last_node_time      = getTime();
   fixed_size          = 500;
-  sample_rate         = 5;
+  sample_rate         = 3;
   m_ScanFrequency     = 6.0;
   frequency_offset    = 0.0;
   zero_offset_angle   = 0.0;
@@ -72,8 +73,10 @@ CYdLidar::~CYdLidar() {
   disconnecting();
 }
 
-bool CYdLidar::setlidaropt(int optname, const void *optval, int optlen) {
-  if (optval == NULL) {
+bool CYdLidar::setlidaropt(int optname, const void *optval, int optlen)
+{
+  if (optval == NULL)
+  {
 #if defined(_WIN32)
     SetLastError(EINVAL);
 #else
@@ -82,8 +85,10 @@ bool CYdLidar::setlidaropt(int optname, const void *optval, int optlen) {
     return false;
   }
 
-  if (optname >= LidarPropFixedResolution) {
-    if (optlen != sizeof(bool)) {
+  if (optname >= LidarPropFixedResolution)
+  {
+    if (optlen != sizeof(bool))
+    {
 #if defined(_WIN32)
       SetLastError(EINVAL);
 #else
@@ -91,99 +96,110 @@ bool CYdLidar::setlidaropt(int optname, const void *optval, int optlen) {
 #endif
       return false;
     }
-
-  } else if (optname >= LidarPropMaxRange) {
-    if (optlen != sizeof(float)) {
-#if defined(_WIN32)
-      SetLastError(EINVAL);
-#else
-      errno = EINVAL;
-#endif
-      return false;
-    }
-  } else if (optname >= LidarPropSerialBaudrate) {
-    if (optlen != sizeof(int)) {
-#if defined(_WIN32)
-      SetLastError(EINVAL);
-#else
-      errno = EINVAL;
-#endif
-      return false;
-    }
-  } else {
-
   }
-
+  else if (optname >= LidarPropMaxRange)
+  {
+    if (optlen != sizeof(float))
+    {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+  }
+  else if (optname >= LidarPropSerialBaudrate)
+  {
+    if (optlen != sizeof(int))
+    {
+#if defined(_WIN32)
+      SetLastError(EINVAL);
+#else
+      errno = EINVAL;
+#endif
+      return false;
+    }
+  }
+  else
+  {
+  }
 
   bool ret = true;
 
-  switch (optname) {
-    case LidarPropSerialPort:
-      m_SerialPort = (const char *)optval;
-      break;
+  switch (optname)
+  {
+  case LidarPropSerialPort:
+    m_SerialPort = (const char *)optval;
+    break;
 
-    case LidarPropIgnoreArray:
-      m_IgnoreString = (const char *)optval;
-      m_IgnoreArray = ydlidar::split(m_IgnoreString, ',');
+  case LidarPropIgnoreArray:
+    m_IgnoreString = (const char *)optval;
+    m_IgnoreArray = ydlidar::split(m_IgnoreString, ',');
 
-      if (m_IgnoreArray.size() % 2 != 0) {
-        m_IgnoreArray.clear();
-        ret = false;
-      }
-
-      break;
-
-    case LidarPropFixedResolution:
-      m_FixedResolution = *(bool *)(optval);
-      break;
-
-    case LidarPropReversion:
-      m_Reversion = *(bool *)(optval);
-      break;
-
-    case LidarPropInverted:
-      m_Inverted = *(bool *)(optval);
-      break;
-
-    case LidarPropAutoReconnect:
-      m_AutoReconnect = *(bool *)(optval);
-      break;
-
-    case LidarPropMaxRange:
-      m_MaxRange = *(float *)(optval);
-      break;
-
-    case LidarPropMinRange:
-      m_MinRange = *(float *)(optval);
-      break;
-
-    case LidarPropMaxAngle:
-      m_MaxAngle = *(float *)(optval);
-      break;
-
-    case LidarPropMinAngle:
-      m_MinAngle = *(float *)(optval);
-      break;
-
-    case LidarPropScanFrequency:
-      m_ScanFrequency = *(float *)(optval);
-      break;
-
-    case LidarPropSerialBaudrate:
-      m_SerialBaudrate = *(int *)(optval);
-      break;
-
-    case LidarPropAbnormalCheckCount:
-      m_AbnormalCheckCount = *(int *)(optval);
-      break;
-
-    case LidarPropSampleRate:
-      sample_rate = *(int *)(optval);
-      break;
-
-    default :
+    if (m_IgnoreArray.size() % 2 != 0)
+    {
+      m_IgnoreArray.clear();
       ret = false;
-      break;
+    }
+
+    break;
+
+  case LidarPropFixedResolution:
+    m_FixedResolution = *(bool *)(optval);
+    break;
+
+  case LidarPropReversion:
+    m_Reversion = *(bool *)(optval);
+    break;
+
+  case LidarPropInverted:
+    m_Inverted = *(bool *)(optval);
+    break;
+
+  case LidarPropAutoReconnect:
+    m_AutoReconnect = *(bool *)(optval);
+    break;
+
+  case LidarPropMaxRange:
+    m_MaxRange = *(float *)(optval);
+    break;
+
+  case LidarPropMinRange:
+    m_MinRange = *(float *)(optval);
+    break;
+
+  case LidarPropMaxAngle:
+    m_MaxAngle = *(float *)(optval);
+    break;
+
+  case LidarPropMinAngle:
+    m_MinAngle = *(float *)(optval);
+    break;
+
+  case LidarPropScanFrequency:
+    m_ScanFrequency = *(float *)(optval);
+    break;
+
+  case LidarPropSerialBaudrate:
+    m_SerialBaudrate = *(int *)(optval);
+    break;
+
+  case LidarPropAbnormalCheckCount:
+    m_AbnormalCheckCount = *(int *)(optval);
+    break;
+
+  case LidarPropIntenstiy:
+    m_Intensity = *(bool *)(optval);
+    break;
+
+  case LidarPropSingleChannel:
+    m_SingleChannel = *(bool *)(optval);
+    break;
+
+  default:
+    ret = false;
+    break;
   }
 
   return ret;
@@ -228,7 +244,6 @@ bool CYdLidar::getlidaropt(int optname, void *optval, int optlen) {
       return false;
     }
   } else {
-
   }
 
   bool ret = true;
@@ -286,6 +301,10 @@ bool CYdLidar::getlidaropt(int optname, void *optval, int optlen) {
       memcpy(optval, &m_AbnormalCheckCount, optlen);
       break;
 
+    case LidarPropSingleChannel:
+      memcpy(optval, &m_SingleChannel, optlen);
+      break;
+
     default :
       ret = false;
       break;
@@ -319,115 +338,144 @@ lidar_error_t CYdLidar::getDriverError() const {
   return UnknownError;
 }
 
+void CYdLidar::setEnableCorrection(bool yes)
+{
+    m_enableCorrect = yes;
+}
+
+void CYdLidar::addCorrectionItem(const EaiCorrectItem &item)
+{
+    cbadjs.push_back(item);
+}
+
+void CYdLidar::setCorrectionItem(int index, const EaiCorrectItem &item)
+{
+    if (index < 0 ||
+        index >= cbadjs.size())
+        return;
+
+    cbadjs[index] = item;
+}
+
+int CYdLidar::getCorrectionCount() const
+{
+    return cbadjs.size();
+}
+
 /*-------------------------------------------------------------
 						doProcessSimple
 -------------------------------------------------------------*/
-bool  CYdLidar::doProcessSimple(LaserScan &scan_msg, bool &hardwareError) {
-  hardwareError			= false;
+bool  CYdLidar::doProcessSimple(LaserScan &scan_msg, bool &hardwareError)
+{
+    hardwareError	= false;
 
-  // Bound?
-  if (!checkHardware()) {
-    scan_msg.points.clear();
-    delay(200 / m_ScanFrequency);
-    hardwareError = false;
-    return false;
-  }
-
-  //  wait Scan data:
-  uint64_t tim_scan_start = getTime();
-  laser_packages.points.clear();
-  result_t op_result = lidarPtr->grabScanData(&laser_packages);
-  uint64_t tim_scan_end = getTime();
-
-  // Fill in scan data:
-  if (IS_OK(op_result)) {
-    LaserPoint point;
-
-    if (m_MaxAngle < m_MinAngle) {
-      float temp = m_MinAngle;
-      m_MinAngle = m_MaxAngle;
-      m_MaxAngle = temp;
+    // Bound?
+    if (!checkHardware()) {
+        scan_msg.points.clear();
+        delay(200 / m_ScanFrequency);
+        hardwareError = false;
+        return false;
     }
 
-    size_t count = laser_packages.points.size();
-    uint64_t scan_time = point_interval_time * (count - 1);
-    tim_scan_end -= package_transfer_time;
-    tim_scan_end -= point_interval_time;
-    tim_scan_start = tim_scan_end -  scan_time ;
-    last_node_time = tim_scan_end;
-    scan_msg.points.clear();
-    scan_msg.config.scan_time = static_cast<float>(1.0 * scan_time / 1e9);
-    scan_msg.config.min_angle = angles::from_degrees(m_MinAngle);
-    scan_msg.config.max_angle = angles::from_degrees(m_MaxAngle);
-    scan_msg.config.angle_increment = 2 * M_PI / (count - 1);
+    //  wait Scan data:
+    uint64_t tim_scan_start = getTime();
+    laser_packages.points.clear();
+    result_t op_result = lidarPtr->grabScanData(&laser_packages);
+    uint64_t tim_scan_end = getTime();
 
-    if (m_FixedResolution) {
-      scan_msg.config.angle_increment = 2 * M_PI / (fixed_size - 1);
-    }
+    // Fill in scan data:
+    if (IS_OK(op_result))
+    {
+        LaserPoint p;
 
-    scan_msg.config.time_increment = scan_msg.config.scan_time / (double)(
-                                       count - 1);
-    scan_msg.stamp = tim_scan_start;
-    scan_msg.config.min_range = m_MinRange;
-    scan_msg.config.max_range = m_MaxRange;
-
-    if (!checkHealth(laser_packages.info)) {
-      hardwareError = true;
-      return false;
-    }
-
-    for (int i = 0; i < count; ++i) {
-      point = laser_packages.points[i];
-      point.range = point.range / 1000.f;
-      point.angle = angles::from_degrees(point.angle + zero_offset_angle);
-
-      if (m_Reversion) {
-        point.angle += M_PI;
-      }
-
-      //Is it counter clockwise
-      if (m_Inverted) {
-        point.angle = 2 * M_PI - point.angle;
-      }
-
-      point.angle = angles::normalize_angle(point.angle);
-
-
-      if (m_GlassNoise && point.intensity == GLASSNOISEINTENSITY) {
-        point.range = 0.0;
-      }
-
-      if (m_SunNoise && point.intensity == SUNNOISEINTENSITY) {
-        point.range  = 0.0;
-      }
-
-      if (point.range > m_MaxRange || point.range < m_MinRange) {
-        point.range = 0.0;
-      }
-
-      if (point.angle >= scan_msg.config.min_angle &&
-          point.angle <= scan_msg.config.max_angle) {
-        if (scan_msg.points.empty()) {
-          scan_msg.stamp = tim_scan_start + i * point_interval_time;
+        if (m_MaxAngle < m_MinAngle) {
+            float temp = m_MinAngle;
+            m_MinAngle = m_MaxAngle;
+            m_MaxAngle = temp;
         }
 
-        scan_msg.points.push_back(point);
-      }
+        size_t count = laser_packages.points.size();
+        uint64_t scan_time = point_interval_time * (count - 1);
+        tim_scan_end -= package_transfer_time;
+        tim_scan_end -= point_interval_time;
+        tim_scan_start = tim_scan_end -  scan_time ;
+        last_node_time = tim_scan_end;
+        scan_msg.points.clear();
+        scan_msg.config.scan_time = static_cast<float>(1.0 * scan_time / 1e9);
+        scan_msg.config.min_angle = angles::from_degrees(m_MinAngle);
+        scan_msg.config.max_angle = angles::from_degrees(m_MaxAngle);
+        scan_msg.config.angle_increment = 2 * M_PI / (count - 1);
+
+        if (m_FixedResolution) {
+            scan_msg.config.angle_increment = 2 * M_PI / (fixed_size - 1);
+        }
+
+        scan_msg.config.time_increment = scan_msg.config.scan_time / (double)(
+                    count - 1);
+        scan_msg.stamp = tim_scan_start;
+        scan_msg.config.min_range = m_MinRange;
+        scan_msg.config.max_range = m_MaxRange;
+
+        if (!checkHealth(laser_packages.info)) {
+            hardwareError = true;
+            return false;
+        }
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            p = laser_packages.points[i];
+            p.range = p.range / 1000.f;
+            p.angle = angles::from_degrees(p.angle + zero_offset_angle);
+
+            if (m_Reversion) {
+                p.angle += M_PI;
+            }
+
+            //Is it counter clockwise
+            if (m_Inverted) {
+                p.angle = 2 * M_PI - p.angle;
+            }
+
+            p.angle = angles::normalize_angle(p.angle);
+
+            if (m_GlassNoise && p.interference_sign == GLASSNOISEINTENSITY) {
+                p.range = 0.0;
+            }
+
+            if (m_SunNoise && p.interference_sign == SUNNOISEINTENSITY) {
+                p.range  = 0.0;
+            }
+
+            if (p.range > m_MaxRange || p.range < m_MinRange) {
+                p.range = 0.0;
+            }
+
+            if (p.angle >= scan_msg.config.min_angle &&
+                p.angle <= scan_msg.config.max_angle)
+            {
+                if (scan_msg.points.empty()) {
+                    scan_msg.stamp = tim_scan_start + i * point_interval_time;
+                }
+
+                correctPoint(p); //畸变矫正处理
+
+                scan_msg.points.push_back(p);
+            }
+        } //for (size_t i = 0; i < count; ++i)
+
+        if (m_FixedResolution) {
+            scan_msg.points.resize(fixed_size);
+        }
+
+        return true;
+
+    } else {
+        if (IS_FAIL(op_result)) {
+            // Error? Retry connection
+        }
     }
 
-    if (m_FixedResolution) {
-      scan_msg.points.resize(fixed_size);
-    }
-
-    return true;
-
-  } else {
-    if (IS_FAIL(op_result)) {
-      // Error? Retry connection
-    }
-  }
-
-  return false;
+    return false;
 }
 
 bool CYdLidar::checkHealth(const ct_packet_t &info) {
@@ -616,7 +664,67 @@ bool CYdLidar::getDeviceInfo(uint32_t timeout) {
   //checkZeroOffsetAngle();
   printf("[YDLIDAR INFO] Current Sampling Rate : %dK\n", sample_rate);
   LOG_INFO(" Current Sampling Rate : %dK",sample_rate)
-  return true;
+          return true;
+}
+
+void CYdLidar::correctPoint(LaserPoint &p)
+{
+    //畸变矫正处理
+    if (!m_enableCorrect)
+        return;
+
+    static float lastDist = .0; //上一个点
+    float angle = .0f;
+    for (size_t j = 0; j<cbadjs.size(); j++)
+    {
+        const EaiCorrectItem& item = cbadjs.at(j);
+        if (!item.enable)
+            continue;
+
+        angle = angles::to_degrees(p.angle);
+        //计算参数
+        float mid_angle = (item.left_angle+item.right_angle) / 2;
+        float bond_angle = abs(item.right_angle-item.left_angle)/2;
+        float err_ang = mid_angle - angle;
+        float temp = .0;
+
+        //判定是否在过滤范围
+        if (item.adj_dir>0) {
+            if ( abs(mid_angle+2 - angle) <= bond_angle/6 ){
+                p.range = 0;
+            }
+        } else {
+            if ( abs(mid_angle-2 - angle) <= bond_angle/6 ){
+                p.range = 0;
+            }
+        }
+        if (abs(err_ang) <= bond_angle)
+        {
+            temp = (bond_angle - abs(err_ang));
+            temp = temp*temp*item.duty;
+            if (p.range > .0)
+            {
+                if(mid_angle > angle){
+                    p.range += temp*item.adj_dir*0.0001;
+                    if(lastDist > .0){
+                        p.range = (p.range*0.2 + lastDist*0.8);
+                        lastDist = p.range;
+                    }
+                }else{
+                    p.range -= temp*item.adj_dir*0.0001;
+                    if(lastDist > .0){
+                        p.range = (p.range*0.8 + lastDist*0.2);
+                        lastDist = p.range;
+                    }
+                }
+            }
+            break;
+        }
+        else
+        {
+            lastDist = p.range;
+        }
+    }
 }
 
 /*-------------------------------------------------------------
@@ -701,20 +809,29 @@ bool CYdLidar::checkZeroOffsetAngle() {
   return ret;
 }
 
-bool CYdLidar::checkStatus() {
-  if (!checkCOMMs()) {
+bool CYdLidar::checkStatus()
+{
+  if (!checkCOMMs())
+  {
     return false;
   }
 
-  bool ret  = getDeviceHealth();
+  bool ret = true;
+  if (m_SingleChannel)
+    return ret;
 
-  if (!ret) {
+  ret = getDeviceHealth();
+  if (!ret)
+  {
     ret = getDeviceHealth(100);
   }
 
-  if (!getDeviceInfo() && !ret) {
+  if (!getDeviceInfo() && !ret)
+  {
     ret = getDeviceInfo();
-  } else {
+  }
+  else
+  {
     ret = true;
   }
 
@@ -744,6 +861,8 @@ bool  CYdLidar::checkCOMMs() {
     printf("[YDLIDAR]:SDK Version: %s\n", YDlidarDriver::getSDKVersion().c_str());
     fflush(stdout);
   }
+
+  lidarPtr->setSingleChannel(m_SingleChannel); //设置单双通
 
   if (isConnected) {
     return true;
